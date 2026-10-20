@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Um push novo no mesmo ramo cancela a execução anterior — não faz sentido
+# esperar o resultado de um commit que já foi superado.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Só leitura. O workflow não precisa escrever em nada do repositório.
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: Build e testes
+    runs-on: ubuntu-latest
+
+    steps:
+      # Actions fixadas por SHA de commit, não por tag. Tag pode ser movida
+      # para outro commit por quem controla o repositório da action; o SHA
+      # não. O comentário diz a versão para quem for atualizar.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          global-json-file: global.json
+
+      - name: Restaurar dependências
+        run: dotnet restore CrmObras.slnx
+
+      # Formatação conferida antes de compilar: diff de estilo misturado com
+      # diff de lógica atrapalha revisão, e é o tipo de coisa que máquina
+      # verifica melhor que gente.
+      - name: Validar formatação
+        run: dotnet format CrmObras.slnx --verify-no-changes --no-restore
+
+      - name: Compilar
+        run: dotnet build CrmObras.slnx --configuration Release --no-restore
+
+      - name: Executar testes
+        run: dotnet test --solution CrmObras.slnx --configuration Release --no-build
+

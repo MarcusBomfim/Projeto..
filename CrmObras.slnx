@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CrmObras.Dominio/CrmObras.Dominio.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CrmObras.Arquitetura.Testes/CrmObras.Arquitetura.Testes.csproj" />
+    <Project Path="tests/CrmObras.Dominio.Testes/CrmObras.Dominio.Testes.csproj" />
+  </Folder>
+</Solution>

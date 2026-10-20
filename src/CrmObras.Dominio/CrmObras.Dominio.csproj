@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    O domínio não tem PackageReference nenhum, e o teste de arquitetura
+    garante que continue assim: ele depende só da biblioteca padrão do .NET.
+  -->
+  <PropertyGroup>
+    <RootNamespace>CrmObras.Dominio</RootNamespace>
+  </PropertyGroup>
+</Project>

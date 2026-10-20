@@ -1,0 +1,27 @@
+<Project>
+  <!--
+    Configuração comum a todos os projetos da solução.
+
+    TreatWarningsAsErrors com os analisadores em latest-recommended: aviso
+    que ninguém corrige vira ruído, e ruído esconde o aviso que importa. Aqui
+    não existe "compila com 40 avisos".
+
+    EnforceCodeStyleInBuild faz as regras do .editorconfig valerem no build,
+    e não só na IDE de quem tiver a extensão certa instalada.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Deterministic>true</Deterministic>
+    <VersionPrefix>0.1.0</VersionPrefix>
+  </PropertyGroup>
+
+  <!-- Em CI, caminhos de arquivo normalizados para o build ser reproduzível. -->
+  <PropertyGroup Condition="'$(CI)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+</Project>
