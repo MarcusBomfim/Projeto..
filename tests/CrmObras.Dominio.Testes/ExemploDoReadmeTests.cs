@@ -9,6 +9,7 @@ using CrmObras.Dominio.Leads;
 using CrmObras.Dominio.MeiosDeContato;
 using CrmObras.Dominio.Oportunidades;
 using CrmObras.Dominio.Propostas;
+using CrmObras.Dominio.Relatorios;
 
 namespace CrmObras.Dominio.Testes;
 
@@ -189,6 +190,82 @@ public sealed class ExemploDoReadmeTests
             ],
             LinhaDoTempo.Da(filial, [funil], [galpao], [retorno], [proposta])
                 .Select(acontecimento => $"{acontecimento.Em.ToString("dd'/'MM", CultureInfo.InvariantCulture)} {acontecimento.Descricao}"));
+    }
+
+    [Fact]
+    public void Os_relatorios_do_trimestre()
+    {
+        // A carteira da filial no último trimestre: o galpão, ganho em dezembro, e mais cinco vendas.
+        var (filial, sergio, funil, galpao) = GalpaoNaProposta();
+        galpao.Ganhar(funil, Dinheiro.Reais(1_843_019.20m), Em(7, 12, 11));
+
+        Oportunidade Venda(string titulo, DateTimeOffset criadaEm, decimal valor, DateOnly previsao, params (int Etapa, DateTimeOffset Em)[] passos)
+        {
+            var venda = new Oportunidade(filial.Id, titulo, funil, "carlos.souza", criadaEm);
+            venda.Estimar(Dinheiro.Reais(valor));
+            venda.PreverFechamento(previsao);
+            venda.DefinirQuemDecide(filial, sergio.Id);
+
+            foreach (var (etapa, em) in passos)
+            {
+                venda.MoverPara(funil, funil.Abertas[etapa].Id, em);
+            }
+
+            return venda;
+        }
+
+        var escritorio = Venda("Escritório de Campinas", Em(3, 11, 9), 600_000m, new DateOnly(2027, 1, 29), (1, Em(10, 11, 9)), (2, Em(17, 11, 9)), (3, Em(10, 12, 9)));
+        var doca = Venda("Doca de Sumaré", Em(10, 11, 9), 300_000m, new DateOnly(2026, 12, 18), (1, Em(12, 11, 9)), (2, Em(20, 11, 9)));
+        doca.Perder(funil, new Perda(MotivoDaPerda.Preco, "Construtora Beta"), Em(15, 12, 9));
+        var portaria = Venda("Portaria de Jundiaí", Em(1, 12, 9), 150_000m, new DateOnly(2027, 2, 26));
+        var refeitorio = Venda("Reforma do refeitório", Em(14, 10, 9), 80_000m, new DateOnly(2026, 11, 30), (1, Em(16, 10, 9)));
+        refeitorio.Perder(funil, new Perda(MotivoDaPerda.SemResposta), Em(30, 11, 9));
+        var estacionamento = Venda("Estacionamento", Em(20, 10, 9), 400_000m, new DateOnly(2026, 12, 18), (4, Em(5, 11, 9)));
+        Oportunidade[] carteira = [galpao, escritorio, doca, portaria, refeitorio, estacionamento];
+
+        // Na primeira segunda de janeiro, a previsão dos próximos três meses — e a venda que devia ter fechado em dezembro.
+        var segundaDia4 = new DateTimeOffset(2027, 1, 4, 9, 0, 0, Segunda.Offset);
+        var previsao = PrevisaoDeReceita.Do([funil], carteira, Mes.De(2027, 1), 3, segundaDia4);
+        Assert.Equal(
+            [
+                "01/2027: em aberto R$ 600.000,00, ponderado R$ 360.000,00",
+                "02/2027: em aberto R$ 150.000,00, ponderado R$ 15.000,00",
+                "03/2027: em aberto R$ 0,00, ponderado R$ 0,00",
+            ],
+            previsao.Meses.Select(mes => $"{mes.Mes}: em aberto {mes.EmAberto}, ponderado {mes.Ponderado}"));
+        Assert.Equal([escritorio], previsao.Meses[0].Abertas);
+        Assert.Equal([portaria], previsao.Meses[1].Abertas);
+        Assert.Equal([estacionamento], previsao.Vencidas);
+
+        // O trimestre: das seis vendas que nasceram nele, quantas chegaram a cada etapa, e quantas das que fecharam foram ganhas.
+        var trimestre = Periodo.De(new DateOnly(2026, 10, 1), new DateOnly(2026, 12, 31), Segunda.Offset);
+        Assert.Equal(
+            [
+                "Primeiro contato (10%): chegaram 6 — ganhas 1, perdidas 2 — 33,3% de ganho",
+                "Visita técnica (20%): chegaram 5 — ganhas 1, perdidas 2 — 33,3% de ganho",
+                "Orçamento em elaboração (40%): chegaram 4 — ganhas 1, perdidas 1 — 50% de ganho",
+                "Proposta enviada (60%): chegaram 3 — ganhas 1, perdidas 0 — 100% de ganho",
+                "Negociação (80%): chegaram 2 — ganhas 1, perdidas 0 — 100% de ganho",
+            ],
+            ConversaoPorEtapa.Do(funil, carteira, trimestre).Etapas.Select(etapa =>
+                $"{etapa.Etapa} ({etapa.Etapa.Probabilidade}%): chegaram {etapa.Chegaram} — ganhas {etapa.Ganhas}, perdidas {etapa.Perdidas} — "
+                + $"{etapa.TaxaDeGanho?.ToString("0.#", CultureInfo.InvariantCulture).Replace('.', ',')}% de ganho"));
+
+        // O ciclo do galpão, a única ganha: 47 dias, 32 deles com a proposta na mão do cliente.
+        var ciclo = CicloDeVenda.Do(funil, carteira, trimestre);
+        Assert.Equal((1, 47), (ciclo.Ganhas, ciclo.Mediana?.Days));
+        Assert.Equal(
+            "Primeiro contato 2 · Visita técnica 3 · Orçamento em elaboração 10 · Proposta enviada 32 · Negociação -",
+            string.Join(" · ", ciclo.Etapas.Select(etapa => $"{etapa.Etapa} {etapa.Mediana?.Days.ToString(CultureInfo.InvariantCulture) ?? "-"}")));
+
+        // E as perdas: por quê, para quem e onde.
+        var perdas = MotivosDePerda.Do(funil, carteira, trimestre);
+        Assert.Equal((2, "R$ 380.000,00"), (perdas.Perdidas, perdas.Valor.ToString()));
+        Assert.Equal(
+            [(MotivoDaPerda.Preco, "R$ 300.000,00"), (MotivoDaPerda.SemResposta, "R$ 80.000,00")],
+            perdas.PorMotivo.Select(motivo => (motivo.Motivo, motivo.Valor.ToString())));
+        Assert.Equal("Construtora Beta", Assert.Single(perdas.PorConcorrente).Concorrente);
+        Assert.Equal(["Visita técnica", "Orçamento em elaboração"], perdas.PorEtapa.Select(etapa => etapa.Etapa.Nome));
     }
 
     [Fact]

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml/badge.svg)](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml)
 
-O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões — e, nas próximas partes, a previsão e o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
+O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões, a previsão de receita e os relatórios de onde se ganha e se perde — e, nas próximas partes, o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
 
 C# 14 · .NET 10 · xUnit v3 · GitHub Actions
 
@@ -16,7 +16,7 @@ Três coisas atrapalham já na porta:
 - **O mesmo cliente vira vários cadastros.** A filial liga, o diretor manda e-mail, a indicação chega pelo arquiteto — e cada um vira uma "empresa nova".
 - **Documento errado vira dor de cabeça no contrato.** CNPJ e CPF têm dígitos verificadores; desde julho de 2026, o CNPJ também pode ter letras.
 
-E, depois da porta, a venda emperra sem que ninguém perceba: a proposta que ninguém cobrou há um mês, o orçamento feito para quem não decide, a previsão de vendas que soma oportunidades sem valor nem data. Na hora do preço, a margem vai embora: o desconto dado por quem não podia dar, a proposta mandada três vezes sem que ninguém saiba qual valeu.
+E, depois da porta, a venda emperra sem que ninguém perceba: a proposta que ninguém cobrou há um mês, o orçamento feito para quem não decide, a previsão de vendas que soma oportunidades sem valor nem data. Na hora do preço, a margem vai embora: o desconto dado por quem não podia dar, a proposta mandada três vezes sem que ninguém saiba qual valeu. E, no fim do mês, ninguém sabe dizer quanto vai entrar, nem por que as vendas se perdem.
 
 ## Exemplo
 
@@ -178,6 +178,30 @@ E a linha do tempo da filial conta a história para quem assumir a conta:
 21/10 Venda aberta: Galpão de 1.200 m² em Jundiaí, em Primeiro contato
 ```
 
+### Previsão e relatórios
+
+Na primeira segunda de janeiro, a diretoria olha a carteira da filial: o galpão, ganho em dezembro, e mais cinco vendas abertas no último trimestre. A previsão pondera cada venda pela probabilidade da etapa em que está, no mês em que deve fechar — e põe à parte a que devia ter fechado e não fechou:
+
+```csharp
+PrevisaoDeReceita.Do([funil], carteira, Mes.De(2027, 1), 3, segundaDia4);
+// 01/2027: em aberto R$ 600.000,00, ponderado R$ 360.000,00 — Escritório de Campinas, em Proposta enviada
+// 02/2027: em aberto R$ 150.000,00, ponderado R$ 15.000,00 — Portaria de Jundiaí, em Primeiro contato
+// 03/2027: em aberto R$ 0,00, ponderado R$ 0,00
+// vencida: Estacionamento, com previsão para 18/12/2026
+```
+
+A conversão acompanha as seis vendas que nasceram no trimestre até onde cada uma chegou — a que pulou uma etapa passou por ela — e mede a taxa de ganho só entre as que já fecharam, para comparar com a probabilidade configurada:
+
+```text
+Primeiro contato (10%):        chegaram 6 — ganhas 1, perdidas 2 — 33,3% de ganho
+Visita técnica (20%):          chegaram 5 — ganhas 1, perdidas 2 — 33,3% de ganho
+Orçamento em elaboração (40%): chegaram 4 — ganhas 1, perdidas 1 — 50% de ganho
+Proposta enviada (60%):        chegaram 3 — ganhas 1, perdidas 0 — 100% de ganho
+Negociação (80%):              chegaram 2 — ganhas 1, perdidas 0 — 100% de ganho
+```
+
+O ciclo do galpão, a única venda ganha, foi de 47 dias — 32 deles com a proposta na mão do cliente. E as perdas dizem onde agir: R$ 380.000,00 em duas vendas, uma por preço, para a Construtora Beta, no orçamento; outra sem resposta, depois da visita técnica.
+
 ## Roteiro
 
 O projeto é construído em partes, cada uma entregue funcionando, testada e documentada.
@@ -187,7 +211,7 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 | 1 | Clientes e leads: contas, contatos, CNPJ e CPF conferidos, qualificação, conversão e busca de duplicados | ✅ |
 | 2 | Funil de vendas: etapas configuráveis, oportunidades, regras de passagem e o tempo em cada etapa | ✅ |
 | 3 | Atividades e propostas: agenda com atrasos, propostas com versões e desconto com alçada de aprovação | ✅ |
-| 4 | Previsão e relatórios: receita prevista ponderada, conversão por etapa, ciclo de venda e motivos de perda | |
+| 4 | Previsão e relatórios: receita prevista ponderada, conversão por etapa, ciclo de venda e motivos de perda | ✅ |
 | 5 | Persistência com EF Core e PostgreSQL, multiempresa com segurança por linha, testes com Testcontainers | |
 | 6 | API REST: JWT, autorização por papel, ProblemDetails, concorrência otimista e idempotência | |
 | 7 | Front-end em React: funil em kanban, ficha do cliente com a linha do tempo e painel da previsão | |
@@ -225,6 +249,15 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 - **Proposta aceita, venda ganha.** O aceite ganha a venda pelo total da versão aceita, e os dois lados são conferidos antes de qualquer mudança.
 - **Linha do tempo do cliente**, do mais recente para o mais antigo: as vendas e as etapas, as atividades feitas com o resultado, as propostas enviadas, aceitas e recusadas.
 
+**Parte 4 — previsão e relatórios**
+
+- **Previsão de receita mês a mês.** A venda aberta entra no mês da previsão de fechamento, pelo valor estimado vezes a probabilidade da etapa; a ganha, no mês em que foi ganha, pelo valor fechado. O ponderado é arredondado ao centavo uma vez por mês.
+- **A previsão não chuta.** A venda sem valor, a sem data e a de previsão vencida ficam fora dos meses, cada uma numa lista, para quem cuida dela corrigir.
+- **Conversão por etapa.** Das vendas que nasceram no período, quantas chegaram a cada etapa — alcançá-la ou uma depois dela —, quantas foram além, e a taxa de ganho entre as que já fecharam, para comparar com a probabilidade configurada.
+- **Ciclo de venda**, das ganhas no período: a mediana, a média, o mais curto e o mais longo, e o tempo típico em cada etapa.
+- **Motivos de perda** no período: por motivo, por concorrente — o nome comparado como na busca de duplicados — e pela etapa em que a venda estava, da mais frequente para a menos, e no empate, da que mais valia.
+- **Mês e período como valores**, com o fuso de quem pede: a venda ganha às 22h de 31/10 em Brasília é de outubro para quem está em Brasília.
+
 ## Decisões
 
 As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](docs/adr):
@@ -236,12 +269,15 @@ As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](d
 - [ADR-0005](docs/adr/0005-a-oportunidade-guarda-cada-passagem-pelo-funil.md) — a oportunidade guarda cada passagem pelo funil, e a venda ganha não se reabre.
 - [ADR-0006](docs/adr/0006-toda-venda-aberta-tem-um-proximo-passo.md) — toda venda aberta tem um próximo passo, e a atividade feita deixa o resultado.
 - [ADR-0007](docs/adr/0007-proposta-em-versoes-e-desconto-com-alcada.md) — a proposta é feita em versões, e o desconto acima da alçada precisa de quem aprove.
+- [ADR-0008](docs/adr/0008-previsao-ponderada-pela-etapa-e-sem-chute.md) — a previsão de receita é ponderada pela etapa, e não chuta.
+- [ADR-0009](docs/adr/0009-conversao-por-quem-chegou-e-ciclo-pela-mediana.md) — a conversão conta quem chegou a cada etapa, e o ciclo de venda é a mediana.
 
 E algumas que não precisaram de ADR:
 
 - **O domínio não depende de nada** além da biblioteca padrão do .NET. Um teste de arquitetura falha se ele passar a referenciar qualquer outro assembly.
 - **Valores só nascem pela leitura que valida.** CNPJ, CPF, e-mail e telefone não têm construtor público: um CNPJ que não confere não existe.
-- **Dinheiro em `decimal`**, arredondado ao centavo pela NBR 5891 — meio centavo vai para o par — só onde a regra manda: em cada linha da proposta, no desconto e no ponderado de cada coluna do quadro.
+- **Dinheiro em `decimal`**, arredondado ao centavo pela NBR 5891 — meio centavo vai para o par — só onde a regra manda: em cada linha da proposta, no desconto, no ponderado de cada coluna do quadro e de cada mês da previsão.
+- **Relatório não guarda nada.** Previsão, conversão, ciclo e perdas são calculados do histórico das vendas, e qualquer período passado pode ser refeito.
 - **Erros de quem usa vêm todos de uma vez.** O contato sem nome e sem meio de contato ouve as duas coisas numa mensagem só.
 - **Aviso é erro.** Analisadores no nível `latest-recommended`, estilo verificado no build e `dotnet format` conferido no CI.
 
@@ -255,6 +291,7 @@ E algumas que não precisaram de ADR:
 - **O andar da oportunidade**: requisitos acumulados, volta, etapa arquivada, instantes fora de ordem, ganho, perda, reabertura, o tempo somado em cada etapa e a venda parada no minuto em que passa do prazo.
 - **A agenda** no minuto em que a atividade atrasa, no fuso de quem olha, e a venda cujo próximo passo é de outra pessoa.
 - **A proposta**: o arredondamento de cada linha e do desconto, a alçada de cada cargo nos limites, a aprovação desfeita ao redigir de novo, a alçada reduzida depois da aprovação, a validade até o último minuto e o aceite que não deixa a venda e a proposta pela metade.
+- **Os relatórios**: o mês do ganho no fuso de quem pede, o meio centavo que só aparece somado no mês, a venda que pulou etapa, a reaberta, a mediana de quantidades par e ímpar, o concorrente escrito de dois jeitos e a etapa arquivada.
 - **O exemplo deste README**, de ponta a ponta.
 - **Arquitetura.** O domínio só referencia a biblioteca padrão; toda classe pública é selada, estática ou abstrata; nenhuma propriedade tem `set` público; os valores não têm construtor público; e todo agregado tem identidade própria.
 
@@ -270,7 +307,7 @@ dotnet test --solution CrmObras.slnx
 
 ```text
 src/CrmObras.Dominio/                  regras do negócio, sem dependências
-  Comum/                               exceção de domínio, identidade, dinheiro e textos
+  Comum/                               exceção de domínio, identidade, dinheiro, mês, período e textos
   Identificacao/                       CNPJ, numérico e alfanumérico, e CPF
   MeiosDeContato/                      e-mail e telefone
   Clientes/                            conta, contatos e o papel de cada um na compra
@@ -280,6 +317,7 @@ src/CrmObras.Dominio/                  regras do negócio, sem dependências
   Atividades/                          atividade e agenda do vendedor
   Propostas/                           proposta, versões, itens, alçadas e o aceite que ganha a venda
   Historico/                           linha do tempo do cliente
+  Relatorios/                          previsão de receita, conversão por etapa, ciclo de venda e motivos de perda
 tests/CrmObras.Dominio.Testes/         exemplos, propriedades e o exemplo deste README
 tests/CrmObras.Arquitetura.Testes/     regras que o domínio não pode quebrar
 docs/adr/                              decisões de arquitetura
