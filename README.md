@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml/badge.svg)](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml)
 
-O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome — e, nas próximas partes, o funil de vendas, as propostas e o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
+O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil até ser ganha ou perdida — e, nas próximas partes, as propostas, a previsão e o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
 
 C# 14 · .NET 10 · xUnit v3 · GitHub Actions
 
@@ -15,6 +15,8 @@ Três coisas atrapalham já na porta:
 - **Quem não vai comprar consome o tempo de quem vai.** A maioria dos interessados não tem verba, ou a obra é para daqui a anos. É preciso perguntar cedo, e as mesmas perguntas para todos.
 - **O mesmo cliente vira vários cadastros.** A filial liga, o diretor manda e-mail, a indicação chega pelo arquiteto — e cada um vira uma "empresa nova".
 - **Documento errado vira dor de cabeça no contrato.** CNPJ e CPF têm dígitos verificadores; desde julho de 2026, o CNPJ também pode ter letras.
+
+E, depois da porta, a venda emperra sem que ninguém perceba: a proposta que ninguém cobrou há um mês, o orçamento feito para quem não decide, a previsão de vendas que soma oportunidades sem valor nem data.
 
 ## Exemplo
 
@@ -67,6 +69,55 @@ var filial = lead.ConverterEmContaNova(duplicados, quarta);
 
 Se a busca tivesse achado uma conta com o mesmo CNPJ, a conta nova seria recusada — o lead viraria contato dela. E o CNPJ alfanumérico é conferido como o numérico: `12.ABC.345/01DE-35` passa; `12.ABC.345/01DE-53` não confere.
 
+### Do lead à proposta
+
+A venda nasce do lead, no funil padrão da construtora, com a obra que a Marina descreveu de título:
+
+```csharp
+var funil = Funil.PadraoDaConstrutora();
+// Primeiro contato 10% · Visita técnica 20% · Orçamento em elaboração 40% · Proposta enviada 60% · Negociação 80%
+
+var galpao = AberturaPeloLead.Abrir(lead, filial, funil, "carlos.souza", quarta);
+// Galpão de 1.200 m² em Jundiaí, em Primeiro contato
+```
+
+A qualificação disse que a Marina não decide, e quem decide fica em aberto. A visita técnica acontece; o orçamento não sai sem quem decide:
+
+```csharp
+galpao.MoverPara(funil, visitaTecnica, sexta);
+galpao.MoverPara(funil, orcamento, segunda);
+// Para a oportunidade Galpão de 1.200 m² em Jundiaí entrar em Orçamento em elaboração, falta quem decide.
+```
+
+Na visita, a Marina apresentou o Sérgio, gerente da filial, que decide. Com ele, o orçamento sai — e pular a proposta não pula o que ela pede:
+
+```csharp
+var sergio = filial.AdicionarContato(new DadosDoContato("Sérgio Lima", Email.De("sergio.lima@rotasul.com.br"),
+    Papel: PapelNaCompra.Decisor));
+galpao.DefinirQuemDecide(filial, sergio.Id);
+galpao.MoverPara(funil, orcamento, segunda);
+
+galpao.MoverPara(funil, negociacao, quinta);
+// Para a oportunidade Galpão de 1.200 m² em Jundiaí entrar em Negociação, falta o valor estimado e a previsão
+// de fechamento.
+
+galpao.Estimar(Dinheiro.Reais(2_400_000m));
+galpao.PreverFechamento(new DateOnly(2026, 12, 15));
+galpao.MoverPara(funil, propostaEnviada, quinta);
+```
+
+Três semanas depois, a proposta continua sem resposta. A etapa espera 15 dias, e o quadro do funil mostra a venda parada:
+
+```csharp
+var coluna = QuadroDoFunil.Do(funil, [galpao], tresSemanasDepois).Colunas[3];
+// Proposta enviada: R$ 2.400.000,00, ponderado a 60%: R$ 1.440.000,00 — parada: Galpão de 1.200 m² em Jundiaí
+
+galpao.TempoEmCadaEtapa(tresSemanasDepois);
+// Primeiro contato 2 dias · Visita técnica 3 dias · Orçamento em elaboração 10 dias · Proposta enviada 21 dias
+```
+
+Se o Sérgio fechar, a venda é ganha pelo valor fechado, e não muda mais. Se escolher outra construtora, é perdida, com o nome do concorrente — e pode ser reaberta, se ele voltar atrás.
+
 ## Roteiro
 
 O projeto é construído em partes, cada uma entregue funcionando, testada e documentada.
@@ -74,7 +125,7 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 | Parte | Conteúdo | |
 |--:|---|---|
 | 1 | Clientes e leads: contas, contatos, CNPJ e CPF conferidos, qualificação, conversão e busca de duplicados | ✅ |
-| 2 | Funil de vendas: etapas configuráveis, oportunidades, regras de passagem e o tempo em cada etapa | |
+| 2 | Funil de vendas: etapas configuráveis, oportunidades, regras de passagem e o tempo em cada etapa | ✅ |
 | 3 | Atividades e propostas: agenda com atrasos, propostas com versões e desconto com alçada de aprovação | |
 | 4 | Previsão e relatórios: receita prevista ponderada, conversão por etapa, ciclo de venda e motivos de perda | |
 | 5 | Persistência com EF Core e PostgreSQL, multiempresa com segurança por linha, testes com Testcontainers | |
@@ -93,6 +144,17 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 - **Busca de duplicados com indícios**, do mais forte para o mais fraco: mesmo documento, mesma raiz de CNPJ, mesmo e-mail, mesmo telefone, mesmo nome — sem acento, pontuação e "Ltda" — e mesmo domínio de e-mail de empresa.
 - **Conversão que não duplica.** Converter em conta nova exige a busca feita, e é recusado se já existe conta com o mesmo documento. Na conta existente, o documento é conferido e o contato com o mesmo e-mail, reaproveitado.
 
+**Parte 2 — funil de vendas**
+
+- **Funil configurável.** Etapas abertas com nome, probabilidade de fechar, dias esperados e requisitos para entrar; um funil padrão de construtora para começar. A probabilidade vai de 1% a 99% e não cai conforme a venda avança. No fim, sempre, a Ganha (100%) e a Perdida (0%), que só mudam de nome.
+- **Requisitos que se acumulam.** Valor estimado, previsão de fechamento e quem decide: para entrar numa etapa, valem os dela e os de todas as anteriores — pular etapa não pula a exigência. A primeira etapa não tem requisito, e nenhuma mudança no funil põe em primeiro uma que tenha.
+- **Etapa arquivada, e não apagada.** Sai do funil e não recebe mais venda, mas guarda a história de quem passou por ela; o nome continua ocupado, e, reativada, ela volta no lugar que a probabilidade indica.
+- **Oportunidade que anda pelo funil**, para a frente e para trás, conferindo os requisitos e dizendo tudo o que falta de uma vez. Quem decide é um contato da conta da venda; os valores são positivos e em centavos.
+- **Ganha e perdida com caminho próprio.** Ganhar pede o valor fechado, e a venda ganha não muda mais. Perder pede o motivo — preço, prazo, concorrente, projeto cancelado, sem crédito, sem resposta, outro —, com o concorrente ou a observação quando o motivo exige; a perdida pode ser reaberta.
+- **Cada passagem por etapa guardada**, com a entrada e a saída: o tempo em cada etapa, somado quando a venda volta, e a venda parada, que passou dos dias que a etapa espera. Fechada a venda, o relógio para.
+- **Do lead à venda.** O lead convertido abre a oportunidade na conta dele, com o interesse de título e o contato de quem decide, se a qualificação disse que ele decide; a venda lembra de que lead veio.
+- **Quadro do funil**: uma coluna por etapa, com as vendas da mais antiga para a mais recente, o total, o ponderado pela probabilidade, as paradas e as que ainda não têm valor.
+
 ## Decisões
 
 As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](docs/adr):
@@ -100,11 +162,14 @@ As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](d
 - [ADR-0001](docs/adr/0001-linguagem-ubiqua-em-portugues.md) — o código fala a língua do comercial: `Lead`, `Conta`, `Qualificacao`, `Cnpj`.
 - [ADR-0002](docs/adr/0002-a-conta-e-identificada-pelo-documento.md) — a conta é identificada pelo documento, que pode chegar depois mas não muda; matriz e filial são contas com a mesma raiz; cada agregado tem identidade do seu tipo.
 - [ADR-0003](docs/adr/0003-qualificacao-e-conversao-do-lead.md) — o lead se qualifica por critérios escritos, e só vira conta depois de procurar os duplicados.
+- [ADR-0004](docs/adr/0004-funil-configuravel-com-requisitos-cumulativos.md) — o funil é configurável, a probabilidade não cai e os requisitos se acumulam.
+- [ADR-0005](docs/adr/0005-a-oportunidade-guarda-cada-passagem-pelo-funil.md) — a oportunidade guarda cada passagem pelo funil, e a venda ganha não se reabre.
 
 E algumas que não precisaram de ADR:
 
 - **O domínio não depende de nada** além da biblioteca padrão do .NET. Um teste de arquitetura falha se ele passar a referenciar qualquer outro assembly.
 - **Valores só nascem pela leitura que valida.** CNPJ, CPF, e-mail e telefone não têm construtor público: um CNPJ que não confere não existe.
+- **Dinheiro em `decimal`**, arredondado ao centavo pela NBR 5891 — meio centavo vai para o par — só onde a regra manda: no ponderado de cada coluna do quadro.
 - **Erros de quem usa vêm todos de uma vez.** O contato sem nome e sem meio de contato ouve as duas coisas numa mensagem só.
 - **Aviso é erro.** Analisadores no nível `latest-recommended`, estilo verificado no build e `dotnet format` conferido no CI.
 
@@ -114,6 +179,8 @@ E algumas que não precisaram de ADR:
 - **Propriedades em 400 casos sorteados**, com semente fixa: CNPJs numéricos e alfanuméricos e CPFs com os verificadores calculados pelo próprio teste — por uma conta escrita à parte — são aceitos, voltam iguais da máscara, e com um verificador trocado são recusados.
 - **A régua da qualificação** em tabela: cada combinação de respostas, e o que falta em cada uma.
 - **A busca de duplicados**, um indício de cada tipo, a ordem entre eles, o provedor gratuito que não aproxima ninguém e o nome comparado sem acento, pontuação e natureza jurídica.
+- **As regras do funil** em cada mudança — criar, adicionar, alterar, mover, arquivar, reativar —, com os limites de probabilidade, prazo e nome, e a mensagem de cada recusa.
+- **O andar da oportunidade**: requisitos acumulados, volta, etapa arquivada, instantes fora de ordem, ganho, perda, reabertura, o tempo somado em cada etapa e a venda parada no minuto em que passa do prazo.
 - **O exemplo deste README**, de ponta a ponta.
 - **Arquitetura.** O domínio só referencia a biblioteca padrão; toda classe pública é selada, estática ou abstrata; nenhuma propriedade tem `set` público; os valores não têm construtor público; e todo agregado tem identidade própria.
 
@@ -129,11 +196,13 @@ dotnet test --solution CrmObras.slnx
 
 ```text
 src/CrmObras.Dominio/                  regras do negócio, sem dependências
-  Comum/                               exceção de domínio, identidade e textos
+  Comum/                               exceção de domínio, identidade, dinheiro e textos
   Identificacao/                       CNPJ, numérico e alfanumérico, e CPF
   MeiosDeContato/                      e-mail e telefone
   Clientes/                            conta, contatos e o papel de cada um na compra
   Leads/                               lead, qualificação, descarte, conversão e busca de duplicados
+  Funis/                               funil, etapas, probabilidade e requisitos
+  Oportunidades/                       oportunidade, passagens pelas etapas, abertura pelo lead e quadro do funil
 tests/CrmObras.Dominio.Testes/         exemplos, propriedades e o exemplo deste README
 tests/CrmObras.Arquitetura.Testes/     regras que o domínio não pode quebrar
 docs/adr/                              decisões de arquitetura
