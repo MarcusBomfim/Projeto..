@@ -142,7 +142,7 @@ public sealed class Lead
 
         if (!Avaliacao.Qualifica)
         {
-            throw new ExcecaoDeDominio($"O lead {Nome} ainda não se qualifica: falta {Lista(Avaliacao.Pendencias)}.");
+            throw new ExcecaoDeDominio($"O lead {Nome} ainda não se qualifica: falta {Textos.Lista(Avaliacao.Pendencias)}.");
         }
 
         Situacao = SituacaoDoLead.Qualificado;
@@ -244,10 +244,6 @@ public sealed class Lead
             problemas.Add(problema);
         }
     }
-
-    /// <summary>"a, b e c".</summary>
-    private static string Lista(IReadOnlyList<string> itens) =>
-        itens.Count == 1 ? itens[0] : $"{string.Join(", ", itens.Take(itens.Count - 1))} e {itens[^1]}";
 
     private DadosDoContato ComoContato() => new(Nome, Email, Telefone);
 

@@ -12,4 +12,8 @@ internal static class Textos
         string.IsNullOrWhiteSpace(texto) ? $"Falta {oQue}."
         : texto.Trim().Length > maximo ? $"{char.ToUpperInvariant(oQue[0])}{oQue[1..]} passa de {maximo} caracteres."
         : null;
+
+    /// <summary>"a, b e c".</summary>
+    public static string Lista(IReadOnlyList<string> itens) =>
+        itens.Count == 1 ? itens[0] : $"{string.Join(", ", itens.Take(itens.Count - 1))} e {itens[^1]}";
 }
