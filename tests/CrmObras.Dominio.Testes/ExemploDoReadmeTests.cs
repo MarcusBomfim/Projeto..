@@ -1,10 +1,14 @@
+using System.Globalization;
+using CrmObras.Dominio.Atividades;
 using CrmObras.Dominio.Clientes;
 using CrmObras.Dominio.Comum;
 using CrmObras.Dominio.Funis;
+using CrmObras.Dominio.Historico;
 using CrmObras.Dominio.Identificacao;
 using CrmObras.Dominio.Leads;
 using CrmObras.Dominio.MeiosDeContato;
 using CrmObras.Dominio.Oportunidades;
+using CrmObras.Dominio.Propostas;
 
 namespace CrmObras.Dominio.Testes;
 
@@ -117,6 +121,77 @@ public sealed class ExemploDoReadmeTests
     }
 
     [Fact]
+    public void Da_proposta_ao_contrato()
+    {
+        // O galpão entrou em Proposta enviada na quinta, 05/11, com a proposta de três linhas, sem desconto.
+        var (filial, sergio, funil, galpao) = GalpaoNaProposta();
+        var carlos = new Comercial("carlos.souza", Cargo.Vendedor);
+        DadosDoItem[] itens =
+        [
+            new("Piso industrial em concreto armado, fck 30 MPa, 15 cm", 1_200m, "m²", Dinheiro.Reais(185.50m)),
+            new("Estrutura metálica do galpão", 1m, "vb", Dinheiro.Reais(1_450_000m)),
+            new("Cobertura em telha termoacústica", 1_350m, "m²", Dinheiro.Reais(312.40m)),
+        ];
+        var validade = new DateOnly(2026, 12, 31);
+        const string Condicoes = "30% na assinatura e o resto por medição";
+
+        var proposta = new Proposta(galpao, new DadosDaVersao(itens, 0m, validade, Condicoes), Em(5, 11, 9));
+        Assert.Equal("R$ 2.094.340,00", proposta.Atual.Total.ToString());
+        proposta.Enviar(carlos, Alcadas.Padrao, Em(5, 11, 9));
+
+        // Três semanas depois, a venda parada também está sem próximo passo: ninguém marcou nada.
+        Assert.Equal([galpao], Agenda.De("carlos.souza", [], [galpao], Em(26, 11, 9)).SemProximoPasso);
+
+        var retorno = new Atividade(
+            filial,
+            new DadosDaAtividade(TipoDeAtividade.Ligacao, "Retorno da proposta", Em(27, 11, 10), sergio.Id),
+            "carlos.souza",
+            Em(26, 11, 9),
+            galpao);
+
+        // Na sexta, às 14h, a ligação das 10h ainda não foi feita: a agenda começa por ela.
+        var agenda = Agenda.De("carlos.souza", [retorno], [galpao], Em(27, 11, 14));
+        Assert.Equal([retorno], agenda.Atrasadas);
+        Assert.Empty(agenda.SemProximoPasso);
+
+        // O Sérgio acha caro, e pede 12% para fechar este ano: a versão 2 precisa da aprovação do diretor.
+        retorno.Concluir("Achou caro: pede 12% de desconto para fechar este ano", Em(27, 11, 14, 30));
+        proposta.NovaVersao();
+        proposta.Redigir(new DadosDaVersao(itens, 12m, validade, Condicoes));
+
+        var semAprovacao = Assert.Throws<ExcecaoDeDominio>(() => proposta.Enviar(carlos, Alcadas.Padrao, Em(30, 11, 9)));
+        Assert.Equal("O desconto de 12% passa da alçada do vendedor, de 5%: precisa da aprovação do diretor.", semAprovacao.Message);
+        var daGerente = Assert.Throws<ExcecaoDeDominio>(() => proposta.AprovarDesconto(new Comercial("helena.martins", Cargo.Gerente), Alcadas.Padrao, Em(30, 11, 9)));
+        Assert.Equal("O gerente aprova até 10%: o desconto de 12% é do diretor.", daGerente.Message);
+
+        proposta.AprovarDesconto(new Comercial("roberto.alves", Cargo.Diretor), Alcadas.Padrao, Em(30, 11, 10));
+        proposta.Enviar(carlos, Alcadas.Padrao, Em(30, 11, 11));
+        Assert.Equal(
+            ("R$ 2.094.340,00", "R$ 251.320,80", "R$ 1.843.019,20"),
+            (proposta.Atual.Subtotal.ToString(), proposta.Atual.ValorDoDesconto.ToString(), proposta.Atual.Total.ToString()));
+
+        // O Sérgio aceita: a venda é ganha pelo total da versão 2.
+        FechamentoPelaProposta.Aceitar(proposta, galpao, funil, Em(7, 12, 11));
+        Assert.Equal((SituacaoDaOportunidade.Ganha, "R$ 1.843.019,20"), (galpao.Situacao, galpao.ValorFechado.ToString()));
+
+        // A linha do tempo da filial conta a história, do mais recente para o mais antigo.
+        Assert.Equal(
+            [
+                "07/12 Venda ganha: Galpão de 1.200 m² em Jundiaí, por R$ 1.843.019,20",
+                "07/12 Proposta aceita: versão 2, R$ 1.843.019,20",
+                "30/11 Proposta enviada: versão 2, R$ 1.843.019,20, com 12% de desconto",
+                "27/11 Ligação: Retorno da proposta — Achou caro: pede 12% de desconto para fechar este ano",
+                "05/11 Galpão de 1.200 m² em Jundiaí: entrou em Proposta enviada",
+                "05/11 Proposta enviada: versão 1, R$ 2.094.340,00",
+                "26/10 Galpão de 1.200 m² em Jundiaí: entrou em Orçamento em elaboração",
+                "23/10 Galpão de 1.200 m² em Jundiaí: entrou em Visita técnica",
+                "21/10 Venda aberta: Galpão de 1.200 m² em Jundiaí, em Primeiro contato",
+            ],
+            LinhaDoTempo.Da(filial, [funil], [galpao], [retorno], [proposta])
+                .Select(acontecimento => $"{acontecimento.Em.ToString("dd'/'MM", CultureInfo.InvariantCulture)} {acontecimento.Descricao}"));
+    }
+
+    [Fact]
     public void O_cnpj_alfanumerico_e_conferido_como_o_numerico()
     {
         Assert.Equal("12.ABC.345/01DE-35", Documento.De("12abc34501de35").Formatado);
@@ -136,6 +211,29 @@ public sealed class ExemploDoReadmeTests
             PapelNaCompra.Decisor));
 
         return matriz;
+    }
+
+    /// <summary>Um instante de 2026, no fuso do exemplo.</summary>
+    private static DateTimeOffset Em(int dia, int mes, int hora, int minuto = 0) => new(2026, mes, dia, hora, minuto, 0, Segunda.Offset);
+
+    /// <summary>O exemplo do funil, sem as conferências: o galpão entra em Proposta enviada na quinta, 05/11.</summary>
+    private static (Conta Filial, Contato Sergio, Funil Funil, Oportunidade Galpao) GalpaoNaProposta()
+    {
+        var lead = LeadDaMarina();
+        lead.Avaliar(new Avaliacao(Resposta.Sim, Resposta.Nao, Resposta.Sim, Resposta.Sim));
+        lead.Qualificar(Segunda.AddDays(2));
+        var filial = lead.ConverterEmContaNova(BuscaDeDuplicados.Do(lead, [Matriz()]), Segunda.AddDays(2));
+        var funil = Funil.PadraoDaConstrutora();
+        var galpao = AberturaPeloLead.Abrir(lead, filial, funil, "carlos.souza", Segunda.AddDays(2));
+        galpao.MoverPara(funil, funil.Abertas[1].Id, Segunda.AddDays(4));
+        var sergio = filial.AdicionarContato(new DadosDoContato("Sérgio Lima", Email.De("sergio.lima@rotasul.com.br"), Papel: PapelNaCompra.Decisor));
+        galpao.DefinirQuemDecide(filial, sergio.Id);
+        galpao.MoverPara(funil, funil.Abertas[2].Id, Segunda.AddDays(7));
+        galpao.Estimar(Dinheiro.Reais(2_400_000m));
+        galpao.PreverFechamento(new DateOnly(2026, 12, 15));
+        galpao.MoverPara(funil, funil.Abertas[3].Id, Segunda.AddDays(17));
+
+        return (filial, sergio, funil, galpao);
     }
 
     private static Lead LeadDaMarina() => new(

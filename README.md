@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml/badge.svg)](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml)
 
-O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil até ser ganha ou perdida — e, nas próximas partes, as propostas, a previsão e o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
+O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões — e, nas próximas partes, a previsão e o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
 
 C# 14 · .NET 10 · xUnit v3 · GitHub Actions
 
@@ -16,7 +16,7 @@ Três coisas atrapalham já na porta:
 - **O mesmo cliente vira vários cadastros.** A filial liga, o diretor manda e-mail, a indicação chega pelo arquiteto — e cada um vira uma "empresa nova".
 - **Documento errado vira dor de cabeça no contrato.** CNPJ e CPF têm dígitos verificadores; desde julho de 2026, o CNPJ também pode ter letras.
 
-E, depois da porta, a venda emperra sem que ninguém perceba: a proposta que ninguém cobrou há um mês, o orçamento feito para quem não decide, a previsão de vendas que soma oportunidades sem valor nem data.
+E, depois da porta, a venda emperra sem que ninguém perceba: a proposta que ninguém cobrou há um mês, o orçamento feito para quem não decide, a previsão de vendas que soma oportunidades sem valor nem data. Na hora do preço, a margem vai embora: o desconto dado por quem não podia dar, a proposta mandada três vezes sem que ninguém saiba qual valeu.
 
 ## Exemplo
 
@@ -116,7 +116,67 @@ galpao.TempoEmCadaEtapa(tresSemanasDepois);
 // Primeiro contato 2 dias · Visita técnica 3 dias · Orçamento em elaboração 10 dias · Proposta enviada 21 dias
 ```
 
-Se o Sérgio fechar, a venda é ganha pelo valor fechado, e não muda mais. Se escolher outra construtora, é perdida, com o nome do concorrente — e pode ser reaberta, se ele voltar atrás.
+### Da proposta ao contrato
+
+A proposta foi junto com a venda para Proposta enviada, em 05/11: três linhas, sem desconto. Cada linha é arredondada ao centavo, e o total é a soma do que o cliente lê:
+
+```csharp
+var proposta = new Proposta(galpao, new DadosDaVersao([piso, estrutura, cobertura], 0m,
+    new DateOnly(2026, 12, 31), "30% na assinatura e o resto por medição"), quintaDia5);
+proposta.Enviar(carlos, Alcadas.Padrao, quintaDia5);
+// versão 1: R$ 2.094.340,00
+```
+
+Três semanas depois, a venda parada também está sem próximo passo — ninguém marcou nada. O Carlos marca a ligação para sexta, às 10h; às 14h, ela ainda não foi feita, e a agenda começa por ela:
+
+```csharp
+Agenda.De("carlos.souza", [], [galpao], quintaDia26).SemProximoPasso;
+// Galpão de 1.200 m² em Jundiaí
+
+var retorno = new Atividade(filial, new DadosDaAtividade(TipoDeAtividade.Ligacao, "Retorno da proposta",
+    sextaAs10h, sergio.Id), "carlos.souza", quintaDia26, galpao);
+
+Agenda.De("carlos.souza", [retorno], [galpao], sextaAs14h).Atrasadas;
+// Retorno da proposta
+```
+
+O Sérgio acha caro, e pede 12% para fechar este ano. A ligação só se conclui com o resultado anotado; a versão 2 nasce igual à 1, e o desconto passa da alçada do vendedor — e da do gerente:
+
+```csharp
+retorno.Concluir("Achou caro: pede 12% de desconto para fechar este ano", sextaAs14h30);
+proposta.NovaVersao();
+proposta.Redigir(new DadosDaVersao([piso, estrutura, cobertura], 12m, new DateOnly(2026, 12, 31), condicoes));
+
+proposta.Enviar(carlos, Alcadas.Padrao, segundaDia30);
+// O desconto de 12% passa da alçada do vendedor, de 5%: precisa da aprovação do diretor.
+proposta.AprovarDesconto(helena, Alcadas.Padrao, segundaDia30);
+// O gerente aprova até 10%: o desconto de 12% é do diretor.
+
+proposta.AprovarDesconto(roberto, Alcadas.Padrao, segundaDia30);
+proposta.Enviar(carlos, Alcadas.Padrao, segundaDia30);
+// versão 2: R$ 2.094.340,00 − R$ 251.320,80 = R$ 1.843.019,20
+```
+
+Uma semana depois, o Sérgio aceita, e a venda é ganha pelo total da versão 2 — a proposta aceita e a venda ganha, juntas, ou nenhuma das duas:
+
+```csharp
+FechamentoPelaProposta.Aceitar(proposta, galpao, funil, segundaDia7);
+// Galpão de 1.200 m² em Jundiaí: ganha por R$ 1.843.019,20
+```
+
+E a linha do tempo da filial conta a história para quem assumir a conta:
+
+```text
+07/12 Venda ganha: Galpão de 1.200 m² em Jundiaí, por R$ 1.843.019,20
+07/12 Proposta aceita: versão 2, R$ 1.843.019,20
+30/11 Proposta enviada: versão 2, R$ 1.843.019,20, com 12% de desconto
+27/11 Ligação: Retorno da proposta — Achou caro: pede 12% de desconto para fechar este ano
+05/11 Galpão de 1.200 m² em Jundiaí: entrou em Proposta enviada
+05/11 Proposta enviada: versão 1, R$ 2.094.340,00
+26/10 Galpão de 1.200 m² em Jundiaí: entrou em Orçamento em elaboração
+23/10 Galpão de 1.200 m² em Jundiaí: entrou em Visita técnica
+21/10 Venda aberta: Galpão de 1.200 m² em Jundiaí, em Primeiro contato
+```
 
 ## Roteiro
 
@@ -126,7 +186,7 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 |--:|---|---|
 | 1 | Clientes e leads: contas, contatos, CNPJ e CPF conferidos, qualificação, conversão e busca de duplicados | ✅ |
 | 2 | Funil de vendas: etapas configuráveis, oportunidades, regras de passagem e o tempo em cada etapa | ✅ |
-| 3 | Atividades e propostas: agenda com atrasos, propostas com versões e desconto com alçada de aprovação | |
+| 3 | Atividades e propostas: agenda com atrasos, propostas com versões e desconto com alçada de aprovação | ✅ |
 | 4 | Previsão e relatórios: receita prevista ponderada, conversão por etapa, ciclo de venda e motivos de perda | |
 | 5 | Persistência com EF Core e PostgreSQL, multiempresa com segurança por linha, testes com Testcontainers | |
 | 6 | API REST: JWT, autorização por papel, ProblemDetails, concorrência otimista e idempotência | |
@@ -155,6 +215,16 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 - **Do lead à venda.** O lead convertido abre a oportunidade na conta dele, com o interesse de título e o contato de quem decide, se a qualificação disse que ele decide; a venda lembra de que lead veio.
 - **Quadro do funil**: uma coluna por etapa, com as vendas da mais antiga para a mais recente, o total, o ponderado pela probabilidade, as paradas e as que ainda não têm valor.
 
+**Parte 3 — atividades e propostas**
+
+- **Atividades da conta e da venda.** Ligação, e-mail, reunião, visita ou tarefa, com assunto, data, responsável e o contato da conta com quem se vai falar. Concluir pede o resultado; cancelar, o motivo; e a encerrada não muda mais. Adiar conta — antecipar não.
+- **Agenda do vendedor**: as atrasadas, da mais antiga; as do resto do dia, pela hora, no fuso de quem olha; e as vendas abertas sem próximo passo — nenhuma atividade pendente, de quem quer que seja.
+- **Proposta em versões.** A versão nasce em rascunho e muda à vontade; enviada, não muda mais, e a seguinte nasce igual à última e a substitui quando vai. O cliente aceita, dentro da validade, ou recusa com o motivo.
+- **Valores como o cliente os lê**: cada linha ao centavo, o subtotal pela soma das linhas, o desconto sobre o subtotal, também ao centavo.
+- **Desconto com alçada.** Cada cargo dá até uma porcentagem — 5%, 10% e 15%, na padrão. Acima da alçada de quem envia, precisa da aprovação de quem tem alçada para o desconto; redigir de novo desfaz a aprovação, e a alçada é conferida no envio.
+- **Proposta aceita, venda ganha.** O aceite ganha a venda pelo total da versão aceita, e os dois lados são conferidos antes de qualquer mudança.
+- **Linha do tempo do cliente**, do mais recente para o mais antigo: as vendas e as etapas, as atividades feitas com o resultado, as propostas enviadas, aceitas e recusadas.
+
 ## Decisões
 
 As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](docs/adr):
@@ -164,12 +234,14 @@ As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](d
 - [ADR-0003](docs/adr/0003-qualificacao-e-conversao-do-lead.md) — o lead se qualifica por critérios escritos, e só vira conta depois de procurar os duplicados.
 - [ADR-0004](docs/adr/0004-funil-configuravel-com-requisitos-cumulativos.md) — o funil é configurável, a probabilidade não cai e os requisitos se acumulam.
 - [ADR-0005](docs/adr/0005-a-oportunidade-guarda-cada-passagem-pelo-funil.md) — a oportunidade guarda cada passagem pelo funil, e a venda ganha não se reabre.
+- [ADR-0006](docs/adr/0006-toda-venda-aberta-tem-um-proximo-passo.md) — toda venda aberta tem um próximo passo, e a atividade feita deixa o resultado.
+- [ADR-0007](docs/adr/0007-proposta-em-versoes-e-desconto-com-alcada.md) — a proposta é feita em versões, e o desconto acima da alçada precisa de quem aprove.
 
 E algumas que não precisaram de ADR:
 
 - **O domínio não depende de nada** além da biblioteca padrão do .NET. Um teste de arquitetura falha se ele passar a referenciar qualquer outro assembly.
 - **Valores só nascem pela leitura que valida.** CNPJ, CPF, e-mail e telefone não têm construtor público: um CNPJ que não confere não existe.
-- **Dinheiro em `decimal`**, arredondado ao centavo pela NBR 5891 — meio centavo vai para o par — só onde a regra manda: no ponderado de cada coluna do quadro.
+- **Dinheiro em `decimal`**, arredondado ao centavo pela NBR 5891 — meio centavo vai para o par — só onde a regra manda: em cada linha da proposta, no desconto e no ponderado de cada coluna do quadro.
 - **Erros de quem usa vêm todos de uma vez.** O contato sem nome e sem meio de contato ouve as duas coisas numa mensagem só.
 - **Aviso é erro.** Analisadores no nível `latest-recommended`, estilo verificado no build e `dotnet format` conferido no CI.
 
@@ -181,6 +253,8 @@ E algumas que não precisaram de ADR:
 - **A busca de duplicados**, um indício de cada tipo, a ordem entre eles, o provedor gratuito que não aproxima ninguém e o nome comparado sem acento, pontuação e natureza jurídica.
 - **As regras do funil** em cada mudança — criar, adicionar, alterar, mover, arquivar, reativar —, com os limites de probabilidade, prazo e nome, e a mensagem de cada recusa.
 - **O andar da oportunidade**: requisitos acumulados, volta, etapa arquivada, instantes fora de ordem, ganho, perda, reabertura, o tempo somado em cada etapa e a venda parada no minuto em que passa do prazo.
+- **A agenda** no minuto em que a atividade atrasa, no fuso de quem olha, e a venda cujo próximo passo é de outra pessoa.
+- **A proposta**: o arredondamento de cada linha e do desconto, a alçada de cada cargo nos limites, a aprovação desfeita ao redigir de novo, a alçada reduzida depois da aprovação, a validade até o último minuto e o aceite que não deixa a venda e a proposta pela metade.
 - **O exemplo deste README**, de ponta a ponta.
 - **Arquitetura.** O domínio só referencia a biblioteca padrão; toda classe pública é selada, estática ou abstrata; nenhuma propriedade tem `set` público; os valores não têm construtor público; e todo agregado tem identidade própria.
 
@@ -203,6 +277,9 @@ src/CrmObras.Dominio/                  regras do negócio, sem dependências
   Leads/                               lead, qualificação, descarte, conversão e busca de duplicados
   Funis/                               funil, etapas, probabilidade e requisitos
   Oportunidades/                       oportunidade, passagens pelas etapas, abertura pelo lead e quadro do funil
+  Atividades/                          atividade e agenda do vendedor
+  Propostas/                           proposta, versões, itens, alçadas e o aceite que ganha a venda
+  Historico/                           linha do tempo do cliente
 tests/CrmObras.Dominio.Testes/         exemplos, propriedades e o exemplo deste README
 tests/CrmObras.Arquitetura.Testes/     regras que o domínio não pode quebrar
 docs/adr/                              decisões de arquitetura
