@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Tudo o que o domínio não sabe: como os agregados viram documentos JSON e
+    como os documentos vão para o PostgreSQL, separados por construtora.
+    Depende do domínio; o domínio não depende daqui.
+  -->
+  <PropertyGroup>
+    <RootNamespace>CrmObras.Infraestrutura</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- Só para o dotnet-ef gerar migrações; não vai para quem usa o projeto. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CrmObras.Dominio\CrmObras.Dominio.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="CrmObras.Infraestrutura.Testes" />
+  </ItemGroup>
+</Project>

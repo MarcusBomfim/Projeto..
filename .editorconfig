@@ -71,3 +71,8 @@ dotnet_diagnostic.CA1710.severity = none
 # `RejeitaDependenciaQueFechariaCiclo` não. A regra que proíbe sublinhado
 # em identificador vale para código de produção, não para teste.
 dotnet_diagnostic.CA1707.severity = none
+
+[src/CrmObras.Infraestrutura/Persistencia/Migracoes/*.cs]
+# Migrações são geradas pelo dotnet-ef a partir do modelo: quem as revisa lê
+# o SQL que elas produzem, e não o estilo do C# gerado.
+generated_code = true

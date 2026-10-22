@@ -1,9 +1,11 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/CrmObras.Dominio/CrmObras.Dominio.csproj" />
+    <Project Path="src/CrmObras.Infraestrutura/CrmObras.Infraestrutura.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CrmObras.Arquitetura.Testes/CrmObras.Arquitetura.Testes.csproj" />
     <Project Path="tests/CrmObras.Dominio.Testes/CrmObras.Dominio.Testes.csproj" />
+    <Project Path="tests/CrmObras.Infraestrutura.Testes/CrmObras.Infraestrutura.Testes.csproj" />
   </Folder>
 </Solution>

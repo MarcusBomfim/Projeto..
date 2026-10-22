@@ -3,12 +3,21 @@
     Versões de pacote num lugar só. Cada projeto declara QUAL pacote usa; a
     versão é decidida aqui, e dois projetos da solução nunca ficam em versões
     diferentes do mesmo pacote.
+
+    A fixação vale também para dependências transitivas listadas aqui. Sem
+    ela, o EF Core viria em duas versões: a que o provedor do PostgreSQL pede,
+    e a do pacote de migrações. Fixado, é uma só em todo projeto.
   -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.13" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
     <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.1" />
   </ItemGroup>
 </Project>

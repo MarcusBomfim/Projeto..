@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <RootNamespace>CrmObras.Infraestrutura.Testes</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="xunit.v3.mtp-v2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CrmObras.Infraestrutura\CrmObras.Infraestrutura.csproj" />
+  </ItemGroup>
+  <!--
+    As vendas, os leads e as propostas dos testes do domínio, compilados aqui
+    também: o que se grava e se lê é exatamente o que o domínio já conferiu.
+    Três arquivos não justificam uma biblioteca de testes compartilhada.
+  -->
+  <ItemGroup>
+    <Compile Include="..\CrmObras.Dominio.Testes\Leads\LeadsDeTeste.cs" Link="Exemplos\LeadsDeTeste.cs" />
+    <Compile Include="..\CrmObras.Dominio.Testes\Oportunidades\VendasDeTeste.cs" Link="Exemplos\VendasDeTeste.cs" />
+    <Compile Include="..\CrmObras.Dominio.Testes\Propostas\PropostasDeTeste.cs" Link="Exemplos\PropostasDeTeste.cs" />
+  </ItemGroup>
+</Project>
