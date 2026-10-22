@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml/badge.svg)](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml)
 
-O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões, a previsão de receita e os relatórios de onde se ganha e se perde — e, nas próximas partes, o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
+O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões, a previsão de receita e os relatórios de onde se ganha e se perde, tudo gravado no PostgreSQL, com cada construtora vendo só o que é dela — e, nas próximas partes, a API, as telas e o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
 
-C# 14 · .NET 10 · xUnit v3 · GitHub Actions
+C# 14 · .NET 10 · EF Core 10 · PostgreSQL 17 · xUnit v3 · Testcontainers · GitHub Actions
 
 ## O problema
 
@@ -202,6 +202,24 @@ Negociação (80%):              chegaram 2 — ganhas 1, perdidas 0 — 100% de
 
 O ciclo do galpão, a única venda ganha, foi de 47 dias — 32 deles com a proposta na mão do cliente. E as perdas dizem onde agir: R$ 380.000,00 em duas vendas, uma por preço, para a Construtora Beta, no orçamento; outra sem resposta, depois da visita técnica.
 
+### Gravado, e cada construtora no seu
+
+Tudo isso vai para o PostgreSQL. Cada agregado é um documento, lido de volta pelas mesmas regras que o criaram; cada gravação confere a versão que foi lida, e quem grava por cima do que não viu é recusado — como confere [`ConcorrenciaTests`](tests/CrmObras.Infraestrutura.Testes/Persistencia/ConcorrenciaTests.cs), num PostgreSQL de verdade:
+
+```csharp
+var daAna = await contas.Obter(conta.Id);       // versão 1
+var doBruno = await contas.Obter(conta.Id);     // versão 1
+
+daAna.Agregado.Renomear("Logística Rota Sul");
+await contas.Atualizar(daAna.Agregado, daAna.Versao);      // versão 2
+
+doBruno.Agregado.Renomear("Rota Sul Ltda");
+await contas.Atualizar(doBruno.Agregado, doBruno.Versao);
+// A conta … mudou desde a versão 1: está na versão 2. Leia de novo e refaça a alteração.
+```
+
+E a conta de uma construtora não existe para outra — nem pelo código, que filtra toda consulta, nem pelo banco, que filtra de novo, linha a linha.
+
 ## Roteiro
 
 O projeto é construído em partes, cada uma entregue funcionando, testada e documentada.
@@ -212,7 +230,7 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 | 2 | Funil de vendas: etapas configuráveis, oportunidades, regras de passagem e o tempo em cada etapa | ✅ |
 | 3 | Atividades e propostas: agenda com atrasos, propostas com versões e desconto com alçada de aprovação | ✅ |
 | 4 | Previsão e relatórios: receita prevista ponderada, conversão por etapa, ciclo de venda e motivos de perda | ✅ |
-| 5 | Persistência com EF Core e PostgreSQL, multiempresa com segurança por linha, testes com Testcontainers | |
+| 5 | Persistência com EF Core e PostgreSQL, multiempresa com segurança por linha, testes com Testcontainers | ✅ |
 | 6 | API REST: JWT, autorização por papel, ProblemDetails, concorrência otimista e idempotência | |
 | 7 | Front-end em React: funil em kanban, ficha do cliente com a linha do tempo e painel da previsão | |
 | 8 | Integração com o planejamento-obras por eventos — a proposta aceita vira obra —, observabilidade, Docker e entrega contínua | |
@@ -258,6 +276,16 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 - **Motivos de perda** no período: por motivo, por concorrente — o nome comparado como na busca de duplicados — e pela etapa em que a venda estava, da mais frequente para a menos, e no empate, da que mais valia.
 - **Mês e período como valores**, com o fuso de quem pede: a venda ganha às 22h de 31/10 em Brasília é de outubro para quem está em Brasília.
 
+**Parte 5 — persistência**
+
+- **Cada agregado é um documento `jsonb`**, numa tabela por agregado, com ao lado só o que o banco precisa enxergar: identidade, versão, formato, construtora, e o que se lista sem abrir o documento — nome, CNPJ ou CPF, situação, vendedor, data da atividade.
+- **A reconstituição passa pelas regras.** O lead volta refazendo os passos; a venda, com as passagens encadeadas no tempo e a situação coerente com o que carrega; a proposta, com as versões contando uma história que as regras produzem. Dado gravado que fere uma regra é recusado na leitura, dizendo o quê.
+- **Leitura estrita**: propriedade que falta ou sobra, nulo onde não cabe, enum pelo número ou formato de outra versão — nada disso vira, em silêncio, um agregado com um campo zerado.
+- **O banco confere o que consegue sozinho**: versão e formato positivos, documento que é objeto, situação que existe, CNPJ ou CPF que não se repete na construtora, e as referências — a venda de uma conta e de um funil da mesma construtora, que não saem do banco enquanto alguém aponta para eles.
+- **Duas barreiras entre as construtoras**: o filtro de toda consulta no código, e a segurança por linha do PostgreSQL, forçada até para o dono das tabelas, com a construtora declarada a cada conexão. Cada barreira testada sem a outra.
+- **Concorrência otimista** com a versão no `where`, num comando só: de dez gravações ao mesmo tempo a partir da mesma versão, passa uma. O que o banco recusa vira exceção com nome e mensagem para gente.
+- **Repositórios que respondem ao que o domínio pergunta**: a conta pelo documento, os leads de uma situação, as vendas de um funil, a agenda de um vendedor, a história de uma conta.
+
 ## Decisões
 
 As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](docs/adr):
@@ -271,10 +299,13 @@ As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](d
 - [ADR-0007](docs/adr/0007-proposta-em-versoes-e-desconto-com-alcada.md) — a proposta é feita em versões, e o desconto acima da alçada precisa de quem aprove.
 - [ADR-0008](docs/adr/0008-previsao-ponderada-pela-etapa-e-sem-chute.md) — a previsão de receita é ponderada pela etapa, e não chuta.
 - [ADR-0009](docs/adr/0009-conversao-por-quem-chegou-e-ciclo-pela-mediana.md) — a conversão conta quem chegou a cada etapa, e o ciclo de venda é a mediana.
+- [ADR-0010](docs/adr/0010-reconstituicao-dos-agregados-passa-pelas-regras.md) — a reconstituição dos agregados é interna, e passa pelas regras.
+- [ADR-0011](docs/adr/0011-documentos-jsonb-separados-por-construtora.md) — cada agregado é um documento `jsonb`, e cada construtora só enxerga os seus.
+- [ADR-0012](docs/adr/0012-concorrencia-otimista-com-versao-explicita.md) — concorrência otimista, com a versão conferida pelo banco num comando só.
 
 E algumas que não precisaram de ADR:
 
-- **O domínio não depende de nada** além da biblioteca padrão do .NET. Um teste de arquitetura falha se ele passar a referenciar qualquer outro assembly.
+- **O domínio não depende de nada** além da biblioteca padrão do .NET — nem do banco. Um teste de arquitetura falha se ele passar a referenciar qualquer outro assembly, e só a infraestrutura e os testes do domínio enxergam os internos dele.
 - **Valores só nascem pela leitura que valida.** CNPJ, CPF, e-mail e telefone não têm construtor público: um CNPJ que não confere não existe.
 - **Dinheiro em `decimal`**, arredondado ao centavo pela NBR 5891 — meio centavo vai para o par — só onde a regra manda: em cada linha da proposta, no desconto, no ponderado de cada coluna do quadro e de cada mês da previsão.
 - **Relatório não guarda nada.** Previsão, conversão, ciclo e perdas são calculados do histórico das vendas, e qualquer período passado pode ser refeito.
@@ -292,16 +323,21 @@ E algumas que não precisaram de ADR:
 - **A agenda** no minuto em que a atividade atrasa, no fuso de quem olha, e a venda cujo próximo passo é de outra pessoa.
 - **A proposta**: o arredondamento de cada linha e do desconto, a alçada de cada cargo nos limites, a aprovação desfeita ao redigir de novo, a alçada reduzida depois da aprovação, a validade até o último minuto e o aceite que não deixa a venda e a proposta pela metade.
 - **Os relatórios**: o mês do ganho no fuso de quem pede, o meio centavo que só aparece somado no mês, a venda que pulou etapa, a reaberta, a mediana de quantidades par e ímpar, o concorrente escrito de dois jeitos e a etapa arquivada.
+- **A reconstituição** de cada agregado, ida e volta, e cada estado que as regras não produzem — passagem que não encadeia, rascunho no meio das versões, lead convertido sem conta — recusado com a razão.
+- **O formato de cada documento** escrito por extenso, e a leitura estrita contra cada jeito de estragá-lo.
+- **O banco de verdade**, num contêiner com PostgreSQL 17: cada restrição, cada chave estrangeira — inclusive a que não deixa uma venda apontar para a conta de outra construtora —, a segurança por linha em toda tabela, cada barreira do isolamento sem a outra, a conexão que volta ao pool sem levar a construtora, e as dez gravações simultâneas de que só uma passa.
 - **O exemplo deste README**, de ponta a ponta.
 - **Arquitetura.** O domínio só referencia a biblioteca padrão; toda classe pública é selada, estática ou abstrata; nenhuma propriedade tem `set` público; os valores não têm construtor público; e todo agregado tem identidade própria.
 
 ## Como rodar
 
-Pré-requisito: o [SDK do .NET 10](https://dotnet.microsoft.com/download).
+Pré-requisitos: o [SDK do .NET 10](https://dotnet.microsoft.com/download) e, para os testes de banco, o Docker.
 
 ```bash
 dotnet test --solution CrmObras.slnx
 ```
+
+Sem Docker, os testes de banco são pulados, com o motivo; no CI, Docker indisponível é falha. As migrações são geradas com o `dotnet-ef` do repositório (`dotnet tool restore`).
 
 ## Estrutura
 
@@ -318,7 +354,11 @@ src/CrmObras.Dominio/                  regras do negócio, sem dependências
   Propostas/                           proposta, versões, itens, alçadas e o aceite que ganha a venda
   Historico/                           linha do tempo do cliente
   Relatorios/                          previsão de receita, conversão por etapa, ciclo de venda e motivos de perda
-tests/CrmObras.Dominio.Testes/         exemplos, propriedades e o exemplo deste README
+src/CrmObras.Infraestrutura/           o que o domínio não sabe
+  Documentos/                          o formato gravado de cada agregado, e a leitura estrita
+  Persistencia/                        contexto, registros, migrações, repositórios e a construtora em cada conexão
+tests/CrmObras.Dominio.Testes/         exemplos, propriedades, a reconstituição e o exemplo deste README
+tests/CrmObras.Infraestrutura.Testes/  documentos, e o banco de verdade num contêiner
 tests/CrmObras.Arquitetura.Testes/     regras que o domínio não pode quebrar
 docs/adr/                              decisões de arquitetura
 ```
