@@ -84,6 +84,23 @@ public sealed class RegrasDoDominioTests
         Assert.All(valores, valor => Assert.Empty(valor.GetConstructors(BindingFlags.Public | BindingFlags.Instance)));
     }
 
+    [Fact]
+    public void Os_internos_do_dominio_so_sao_visiveis_para_quem_grava_e_para_os_testes_dele()
+    {
+        /*
+         * A reconstituição dos agregados é interna: refaz um agregado com a
+         * identidade gravada, por um caminho que a API não tem (ADR-0010).
+         * Quem mais enxergar os internos poderia criar uma conta com o id de
+         * outra — e passaria por este teste antes.
+         */
+        var visiveisPara = Dominio
+            .GetCustomAttributes<InternalsVisibleToAttribute>()
+            .Select(atributo => atributo.AssemblyName)
+            .Order(StringComparer.Ordinal);
+
+        Assert.Equal(["CrmObras.Dominio.Testes", "CrmObras.Infraestrutura"], visiveisPara);
+    }
+
     private static bool EhDaBibliotecaPadrao(string nome) =>
         nome is "System" or "netstandard" or "mscorlib"
         || nome.StartsWith("System.", StringComparison.Ordinal);

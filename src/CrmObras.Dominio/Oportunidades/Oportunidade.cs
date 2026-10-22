@@ -40,9 +40,15 @@ public sealed class Oportunidade
     /// <param name="em">Quando a venda começou.</param>
     /// <param name="lead">O lead de onde a venda veio, se veio de um.</param>
     public Oportunidade(ContaId conta, string titulo, Funil funil, string responsavel, DateTimeOffset em, LeadId? lead = null)
+        : this(OportunidadeId.Novo(), conta, titulo, IdDo(funil), responsavel, em, lead)
     {
+        _passagens.Add(new PassagemPorEtapa(funil.Primeira.Id, em));
+    }
+
+    private Oportunidade(OportunidadeId id, ContaId conta, string titulo, FunilId funil, string responsavel, DateTimeOffset em, LeadId? lead)
+    {
+        ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(conta);
-        ArgumentNullException.ThrowIfNull(funil);
 
         var problemas = new[]
         {
@@ -55,14 +61,13 @@ public sealed class Oportunidade
             throw new ExcecaoDeDominio(string.Join(" ", problemas));
         }
 
-        Id = OportunidadeId.Novo();
+        Id = id;
         Conta = conta;
         Titulo = titulo.Trim();
-        Funil = funil.Id;
+        Funil = funil;
         Responsavel = responsavel.Trim();
         CriadaEm = em;
         Lead = lead;
-        _passagens.Add(new PassagemPorEtapa(funil.Primeira.Id, em));
     }
 
     public OportunidadeId Id { get; }
@@ -105,6 +110,11 @@ public sealed class Oportunidade
 
     /// <summary>Quando foi ganha ou perdida.</summary>
     public DateTimeOffset? FechadaEm { get; private set; }
+
+    /// <summary>Tudo o que a oportunidade é, para gravar e refazer (ADR-0010).</summary>
+    internal EstadoDaOportunidade Estado => new(
+        Conta, Titulo, Funil, Responsavel, CriadaEm, Lead, [.. _passagens], Situacao,
+        ValorEstimado, PrevisaoDeFechamento, QuemDecide, ValorFechado, Perda, FechadaEm);
 
     public void Renomear(string titulo)
     {
@@ -205,37 +215,15 @@ public sealed class Oportunidade
         ConferirFunil(funil);
         ConferirInstante(em);
 
-        var concorrente = Textos.Opcional(perda.Concorrente);
-        var observacao = Textos.Opcional(perda.Observacao);
-        var problemas = new List<string>();
+        var aparada = Aparada(perda);
 
-        if (perda.Motivo == MotivoDaPerda.ConcorrenteEscolhido && concorrente is null)
-        {
-            problemas.Add("Perda para o concorrente diz qual concorrente.");
-        }
-
-        if (perda.Motivo == MotivoDaPerda.Outro && observacao is null)
-        {
-            problemas.Add("Perda por outro motivo diz qual, na observação.");
-        }
-
-        if (concorrente?.Length > MaiorConcorrente)
-        {
-            problemas.Add($"O nome do concorrente passa de {MaiorConcorrente} caracteres.");
-        }
-
-        if (observacao?.Length > MaiorTexto)
-        {
-            problemas.Add($"A observação passa de {MaiorTexto} caracteres.");
-        }
-
-        if (problemas.Count > 0)
+        if (ProblemasDa(aparada) is { Count: > 0 } problemas)
         {
             throw new ExcecaoDeDominio(string.Join(" ", problemas));
         }
 
         Situacao = SituacaoDaOportunidade.Perdida;
-        Perda = new Perda(perda.Motivo, concorrente, observacao);
+        Perda = aparada;
         FechadaEm = em;
         Entrar(funil.Perdida.Id, em);
     }
@@ -293,10 +281,161 @@ public sealed class Oportunidade
 
     public override string ToString() => Titulo;
 
+    /// <summary>
+    /// Refaz uma oportunidade gravada, com a identidade dela (ADR-0010).
+    /// </summary>
+    /// <remarks>
+    /// Os passos não são dados de novo: o funil pode ter mudado desde então,
+    /// e a venda que entrou numa etapa sem requisito não pode ser barrada
+    /// porque a etapa passou a ter um. O que se confere é o que vale sempre:
+    /// as passagens encadeadas no tempo, os valores em centavos, a perda com
+    /// o que o motivo pede, e a situação coerente com o que ela carrega.
+    /// </remarks>
+    internal static Oportunidade Reconstituir(OportunidadeId id, EstadoDaOportunidade estado)
+    {
+        ArgumentNullException.ThrowIfNull(estado);
+        ArgumentNullException.ThrowIfNull(estado.Passagens);
+
+        var oportunidade = new Oportunidade(id, estado.Conta, estado.Titulo, estado.Funil, estado.Responsavel, estado.CriadaEm, estado.Lead);
+        var problemas = oportunidade.ProblemasDa(estado);
+
+        if (problemas.Count > 0)
+        {
+            throw new ExcecaoDeDominio($"A oportunidade {oportunidade.Titulo} está gravada num estado que as regras não produzem: {string.Join("; ", problemas)}.");
+        }
+
+        oportunidade._passagens.AddRange(estado.Passagens);
+        oportunidade.Situacao = estado.Situacao;
+        oportunidade.ValorEstimado = estado.ValorEstimado;
+        oportunidade.PrevisaoDeFechamento = estado.PrevisaoDeFechamento;
+        oportunidade.QuemDecide = estado.QuemDecide;
+        oportunidade.ValorFechado = estado.ValorFechado;
+        oportunidade.Perda = estado.Perda;
+        oportunidade.FechadaEm = estado.FechadaEm;
+
+        return oportunidade;
+    }
+
+    private static FunilId IdDo(Funil funil)
+    {
+        ArgumentNullException.ThrowIfNull(funil);
+
+        return funil.Id;
+    }
+
+    private static Perda Aparada(Perda perda) => new(perda.Motivo, Textos.Opcional(perda.Concorrente), Textos.Opcional(perda.Observacao));
+
+    /// <summary>O que falta ou sobra numa perda, todos de uma vez.</summary>
+    private static List<string> ProblemasDa(Perda perda)
+    {
+        var problemas = new List<string>();
+
+        if (perda.Motivo == MotivoDaPerda.ConcorrenteEscolhido && perda.Concorrente is null)
+        {
+            problemas.Add("Perda para o concorrente diz qual concorrente.");
+        }
+
+        if (perda.Motivo == MotivoDaPerda.Outro && perda.Observacao is null)
+        {
+            problemas.Add("Perda por outro motivo diz qual, na observação.");
+        }
+
+        if (perda.Concorrente?.Length > MaiorConcorrente)
+        {
+            problemas.Add($"O nome do concorrente passa de {MaiorConcorrente} caracteres.");
+        }
+
+        if (perda.Observacao?.Length > MaiorTexto)
+        {
+            problemas.Add($"A observação passa de {MaiorTexto} caracteres.");
+        }
+
+        return problemas;
+    }
+
     private static string? ProblemaDoValor(Dinheiro valor, string oQue) =>
         valor <= Dinheiro.Zero ? $"O {oQue} precisa ser maior que zero."
         : !valor.EstaEmCentavos ? $"O {oQue} vai até o centavo: {valor} tem casas demais."
         : null;
+
+    /// <summary>O que, no estado gravado, as regras não produziriam — cada coisa numa frase curta.</summary>
+    private List<string> ProblemasDa(EstadoDaOportunidade estado)
+    {
+        var passagens = estado.Passagens;
+
+        if (passagens.Count == 0)
+        {
+            return ["não passou por etapa nenhuma"];
+        }
+
+        var problemas = new List<string>();
+
+        if (passagens[0].EntrouEm != CriadaEm)
+        {
+            problemas.Add("a primeira passagem não começa quando a venda foi aberta");
+        }
+
+        for (var posicao = 0; posicao < passagens.Count - 1; posicao++)
+        {
+            if (passagens[posicao].SaiuEm != passagens[posicao + 1].EntrouEm)
+            {
+                problemas.Add($"a passagem {posicao + 1} não termina quando a seguinte começa");
+            }
+        }
+
+        if (passagens[^1].SaiuEm is not null)
+        {
+            problemas.Add("a passagem atual tem saída");
+        }
+
+        if (passagens.Any(passagem => passagem.SaiuEm < passagem.EntrouEm))
+        {
+            problemas.Add("uma passagem termina antes de começar");
+        }
+
+        if (estado.ValorEstimado is { } estimado && ProblemaDoValor(estimado, "valor estimado") is not null)
+        {
+            problemas.Add("o valor estimado não é positivo, em centavos");
+        }
+
+        if (estado.ValorFechado is { } fechado && ProblemaDoValor(fechado, "valor fechado") is not null)
+        {
+            problemas.Add("o valor fechado não é positivo, em centavos");
+        }
+
+        if (estado.Situacao == SituacaoDaOportunidade.Aberta)
+        {
+            if (estado.ValorFechado is not null || estado.Perda is not null || estado.FechadaEm is not null)
+            {
+                problemas.Add("está aberta, e tem fechamento");
+            }
+
+            return problemas;
+        }
+
+        if (estado.FechadaEm != passagens[^1].EntrouEm)
+        {
+            problemas.Add("o fechamento não é a entrada na última etapa");
+        }
+
+        if (estado.Situacao == SituacaoDaOportunidade.Ganha)
+        {
+            if (estado.ValorFechado is null || estado.Perda is not null)
+            {
+                problemas.Add("está ganha, e não tem o valor fechado, ou tem perda");
+            }
+        }
+        else if (estado.Perda is not { } perda || estado.ValorFechado is not null)
+        {
+            problemas.Add("está perdida, e não tem o motivo, ou tem valor fechado");
+        }
+        else if (perda != Aparada(perda) || ProblemasDa(perda).Count > 0)
+        {
+            problemas.Add("a perda não diz o que o motivo pede");
+        }
+
+        return problemas;
+    }
 
     private void ExigirAberta()
     {
@@ -379,3 +518,20 @@ public sealed class Oportunidade
         _passagens.Add(new PassagemPorEtapa(etapa, em));
     }
 }
+
+/// <summary>Tudo o que uma oportunidade é, além da identidade: o que se grava, e de onde ela é refeita.</summary>
+internal sealed record EstadoDaOportunidade(
+    ContaId Conta,
+    string Titulo,
+    FunilId Funil,
+    string Responsavel,
+    DateTimeOffset CriadaEm,
+    LeadId? Lead,
+    IReadOnlyList<PassagemPorEtapa> Passagens,
+    SituacaoDaOportunidade Situacao,
+    Dinheiro? ValorEstimado = null,
+    DateOnly? PrevisaoDeFechamento = null,
+    ContatoId? QuemDecide = null,
+    Dinheiro? ValorFechado = null,
+    Perda? Perda = null,
+    DateTimeOffset? FechadaEm = null);

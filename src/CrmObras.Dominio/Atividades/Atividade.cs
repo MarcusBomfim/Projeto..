@@ -33,34 +33,42 @@ public sealed class Atividade
     /// <param name="em">Quando a atividade foi marcada.</param>
     /// <param name="oportunidade">A venda a que a atividade serve, se serve a uma. Tem de ser da conta, e estar aberta.</param>
     public Atividade(Conta conta, DadosDaAtividade dados, string responsavel, DateTimeOffset em, Oportunidade? oportunidade = null)
+        : this(AtividadeId.Novo(), IdDa(conta), oportunidade?.Id, dados, responsavel, em, ProblemasDoVinculo(conta, dados, oportunidade))
     {
-        ArgumentNullException.ThrowIfNull(conta);
+    }
+
+    /// <param name="doVinculo">O que está errado na ligação com a conta e a venda, conferido por quem tem a conta e a venda.</param>
+    private Atividade(
+        AtividadeId id,
+        ContaId conta,
+        OportunidadeId? oportunidade,
+        DadosDaAtividade dados,
+        string responsavel,
+        DateTimeOffset em,
+        IEnumerable<string> doVinculo)
+    {
+        ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(dados);
 
-        var problemas = new[]
-        {
-            Textos.Problema(dados.Assunto, "o assunto da atividade", MaiorAssunto),
-            Textos.Problema(responsavel, "o responsável pela atividade", MaiorResponsavel),
-            Textos.Opcional(dados.Detalhes)?.Length > MaiorTexto ? $"Os detalhes passam de {MaiorTexto} caracteres." : null,
-            dados.Com is { } contato && !conta.Contatos.Any(daConta => daConta.Id == contato)
-                ? $"A conta {conta.Nome} não tem o contato {contato}."
-                : null,
-            oportunidade is not null && oportunidade.Conta != conta.Id
-                ? $"A oportunidade {oportunidade.Titulo} não é da conta {conta.Nome}."
-                : null,
-            oportunidade is { Situacao: not SituacaoDaOportunidade.Aberta }
-                ? $"A oportunidade {oportunidade.Titulo} está fechada: a atividade nova é da conta, e não da venda."
-                : null,
-        }.OfType<string>().ToList();
+        List<string> problemas =
+        [
+            .. new[]
+            {
+                Textos.Problema(dados.Assunto, "o assunto da atividade", MaiorAssunto),
+                Textos.Problema(responsavel, "o responsável pela atividade", MaiorResponsavel),
+                Textos.Opcional(dados.Detalhes)?.Length > MaiorTexto ? $"Os detalhes passam de {MaiorTexto} caracteres." : null,
+            }.OfType<string>(),
+            .. doVinculo,
+        ];
 
         if (problemas.Count > 0)
         {
             throw new ExcecaoDeDominio(string.Join(" ", problemas));
         }
 
-        Id = AtividadeId.Novo();
-        Conta = conta.Id;
-        Oportunidade = oportunidade?.Id;
+        Id = id;
+        Conta = conta;
+        Oportunidade = oportunidade;
         Tipo = dados.Tipo;
         Assunto = dados.Assunto.Trim();
         Com = dados.Com;
@@ -104,6 +112,19 @@ public sealed class Atividade
 
     /// <summary>Quando foi concluída ou cancelada.</summary>
     public DateTimeOffset? EncerradaEm { get; private set; }
+
+    /// <summary>Tudo o que a atividade é, para gravar e refazer (ADR-0010).</summary>
+    internal EstadoDaAtividade Estado => new(
+        Conta,
+        Oportunidade,
+        new DadosDaAtividade(Tipo, Assunto, PrevistaPara, Com, Detalhes),
+        Responsavel,
+        CriadaEm,
+        Adiamentos,
+        Situacao,
+        Resultado,
+        MotivoDoCancelamento,
+        EncerradaEm);
 
     /// <summary>Se ainda está por fazer e a hora já passou.</summary>
     public bool EstaAtrasada(DateTimeOffset agora) => Situacao == SituacaoDaAtividade.Pendente && agora > PrevistaPara;
@@ -180,6 +201,68 @@ public sealed class Atividade
 
     public override string ToString() => Assunto;
 
+    /// <summary>
+    /// Refaz uma atividade gravada, com a identidade dela (ADR-0010). O que se
+    /// confere é o que vale sempre — os textos, e a situação coerente com o
+    /// resultado, o motivo e o encerramento —, e não o que valia ao marcar: a
+    /// venda pode ter fechado depois, e o contato, saído da conta.
+    /// </summary>
+    internal static Atividade Reconstituir(AtividadeId id, EstadoDaAtividade estado)
+    {
+        ArgumentNullException.ThrowIfNull(estado);
+
+        var atividade = new Atividade(id, estado.Conta, estado.Oportunidade, estado.Dados, estado.Responsavel, estado.CriadaEm, []);
+        var coerente = estado.Adiamentos >= 0 && estado.Situacao switch
+        {
+            SituacaoDaAtividade.Pendente => estado is { Resultado: null, MotivoDoCancelamento: null, EncerradaEm: null },
+            SituacaoDaAtividade.Concluida => estado.MotivoDoCancelamento is null && TextoQueServe(estado.Resultado) && estado.EncerradaEm >= estado.CriadaEm,
+            _ => estado.Resultado is null && TextoQueServe(estado.MotivoDoCancelamento) && estado.EncerradaEm >= estado.CriadaEm,
+        };
+
+        if (!coerente)
+        {
+            throw new ExcecaoDeDominio($"A atividade {atividade.Assunto} está gravada como {estado.Situacao}, num estado que as regras não produzem.");
+        }
+
+        atividade.Adiamentos = estado.Adiamentos;
+        atividade.Situacao = estado.Situacao;
+        atividade.Resultado = estado.Resultado;
+        atividade.MotivoDoCancelamento = estado.MotivoDoCancelamento;
+        atividade.EncerradaEm = estado.EncerradaEm;
+
+        return atividade;
+    }
+
+    private static ContaId IdDa(Conta conta)
+    {
+        ArgumentNullException.ThrowIfNull(conta);
+
+        return conta.Id;
+    }
+
+    private static IEnumerable<string> ProblemasDoVinculo(Conta conta, DadosDaAtividade dados, Oportunidade? oportunidade)
+    {
+        ArgumentNullException.ThrowIfNull(dados);
+
+        if (dados.Com is { } contato && !conta.Contatos.Any(daConta => daConta.Id == contato))
+        {
+            yield return $"A conta {conta.Nome} não tem o contato {contato}.";
+        }
+
+        if (oportunidade is not null && oportunidade.Conta != conta.Id)
+        {
+            yield return $"A oportunidade {oportunidade.Titulo} não é da conta {conta.Nome}.";
+        }
+
+        if (oportunidade is { Situacao: not SituacaoDaOportunidade.Aberta })
+        {
+            yield return $"A oportunidade {oportunidade.Titulo} está fechada: a atividade nova é da conta, e não da venda.";
+        }
+    }
+
+    /// <summary>Um resultado ou um motivo como quem encerra a atividade deixaria: sem espaço nas pontas, e dentro do tamanho.</summary>
+    private static bool TextoQueServe(string? texto) => Textos.Opcional(texto) == texto && texto?.Length <= MaiorTexto;
+
     private void ExigirPendente()
     {
         if (Situacao != SituacaoDaAtividade.Pendente)
@@ -198,3 +281,16 @@ public sealed class Atividade
         }
     }
 }
+
+/// <summary>Tudo o que uma atividade é, além da identidade: o que se grava, e de onde ela é refeita.</summary>
+internal sealed record EstadoDaAtividade(
+    ContaId Conta,
+    OportunidadeId? Oportunidade,
+    DadosDaAtividade Dados,
+    string Responsavel,
+    DateTimeOffset CriadaEm,
+    int Adiamentos,
+    SituacaoDaAtividade Situacao,
+    string? Resultado = null,
+    string? MotivoDoCancelamento = null,
+    DateTimeOffset? EncerradaEm = null);

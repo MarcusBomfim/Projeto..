@@ -61,6 +61,24 @@ public sealed class VersaoDaProposta
         ValidaAte,
         CondicoesDePagamento);
 
+    /// <summary>Tudo o que a versão é, para gravar e refazer (ADR-0010).</summary>
+    internal EstadoDaVersao Estado =>
+        new(Numero, Conteudo(), Situacao, Aprovacao, EnviadaPor, EnviadaEm, RespondidaEm, MotivoDaRecusa);
+
+    /// <summary>A versão gravada, com o conteúdo e o que aconteceu com ela; quem confere a coerência é a proposta.</summary>
+    internal static VersaoDaProposta Reconstituir(EstadoDaVersao estado)
+    {
+        return new VersaoDaProposta(estado.Numero, estado.Conteudo)
+        {
+            Situacao = estado.Situacao,
+            Aprovacao = estado.Aprovacao,
+            EnviadaPor = estado.EnviadaPor,
+            EnviadaEm = estado.EnviadaEm,
+            RespondidaEm = estado.RespondidaEm,
+            MotivoDaRecusa = estado.MotivoDaRecusa,
+        };
+    }
+
     internal void Redigir(DadosDaVersao dados)
     {
         _itens = [.. dados.Itens.Select(item => new ItemDaProposta(item))];
@@ -94,3 +112,14 @@ public sealed class VersaoDaProposta
         RespondidaEm = em;
     }
 }
+
+/// <summary>Tudo o que uma versão da proposta é: o que se grava, e de onde ela é refeita.</summary>
+internal sealed record EstadoDaVersao(
+    int Numero,
+    DadosDaVersao Conteudo,
+    SituacaoDaVersao Situacao,
+    AprovacaoDeDesconto? Aprovacao = null,
+    Comercial? EnviadaPor = null,
+    DateTimeOffset? EnviadaEm = null,
+    DateTimeOffset? RespondidaEm = null,
+    string? MotivoDaRecusa = null);

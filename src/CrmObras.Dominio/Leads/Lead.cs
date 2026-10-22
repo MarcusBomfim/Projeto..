@@ -43,7 +43,13 @@ public sealed class Lead
     private const int MaiorTexto = 1000;
 
     public Lead(DadosDoLead dados, OrigemDoLead origem, string? detalheDaOrigem, DateTimeOffset chegouEm)
+        : this(LeadId.Novo(), dados, origem, detalheDaOrigem, chegouEm)
     {
+    }
+
+    private Lead(LeadId id, DadosDoLead dados, OrigemDoLead origem, string? detalheDaOrigem, DateTimeOffset chegouEm)
+    {
+        ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(dados);
 
         var problemas = new List<string>();
@@ -63,7 +69,7 @@ public sealed class Lead
             throw new ExcecaoDeDominio(string.Join(" ", problemas));
         }
 
-        Id = LeadId.Novo();
+        Id = id;
         Nome = dados.Nome.Trim();
         Empresa = Textos.Opcional(dados.Empresa);
         Documento = dados.Documento;
@@ -118,6 +124,10 @@ public sealed class Lead
 
     /// <summary>Como o cliente se chama: a empresa, ou a pessoa, se é para ela mesma.</summary>
     public string NomeDoCliente => Empresa ?? Nome;
+
+    /// <summary>O que mudou desde que o lead chegou: a situação e o que ela carrega.</summary>
+    internal EstadoDoLead Estado =>
+        new(Situacao, Avaliacao, QualificadoEm, MotivoDoDescarte, ObservacaoDoDescarte, DescartadoEm, Conta, Contato, ConvertidoEm);
 
     /// <summary>Registra as respostas da qualificação. Avaliar de novo um lead qualificado o devolve à qualificação.</summary>
     public void Avaliar(Avaliacao avaliacao)
@@ -203,7 +213,7 @@ public sealed class Lead
         }
 
         var conta = new Conta(NomeDoCliente, Documento);
-        Converter(conta, conta.AdicionarContato(ComoContato()), em);
+        Converter(conta.Id, conta.AdicionarContato(ComoContato()).Id, em);
 
         return conta;
     }
@@ -230,12 +240,52 @@ public sealed class Lead
 
         var contato = conta.Contatos.FirstOrDefault(existente => Email is not null && existente.Email == Email)
             ?? conta.AdicionarContato(ComoContato());
-        Converter(conta, contato, em);
+        Converter(conta.Id, contato.Id, em);
 
         return contato;
     }
 
     public override string ToString() => Nome;
+
+    /// <summary>
+    /// Refaz um lead gravado, com a identidade dele (ADR-0010). Os passos são
+    /// dados de novo, pelas regras de sempre — avaliar, qualificar, descartar —,
+    /// e o estado a que eles chegam tem de ser o gravado: o que as regras não
+    /// produzem é recusado.
+    /// </summary>
+    internal static Lead Reconstituir(
+        LeadId id,
+        DadosDoLead dados,
+        OrigemDoLead origem,
+        string? detalheDaOrigem,
+        DateTimeOffset chegouEm,
+        EstadoDoLead estado)
+    {
+        ArgumentNullException.ThrowIfNull(estado);
+
+        var lead = new Lead(id, dados, origem, detalheDaOrigem, chegouEm);
+
+        if (estado.Avaliacao != Avaliacao.NaoFeita || estado.Situacao is SituacaoDoLead.EmQualificacao)
+        {
+            lead.Avaliar(estado.Avaliacao);
+        }
+
+        switch (estado.Situacao)
+        {
+            case SituacaoDoLead.Qualificado:
+                lead.Qualificar(lead.Exigido(estado.QualificadoEm, estado));
+                break;
+            case SituacaoDoLead.Descartado:
+                lead.Descartar(lead.Exigido(estado.MotivoDoDescarte, estado), estado.ObservacaoDoDescarte, lead.Exigido(estado.DescartadoEm, estado));
+                break;
+            case SituacaoDoLead.Convertido:
+                lead.Qualificar(lead.Exigido(estado.QualificadoEm, estado));
+                lead.Converter(lead.Exigido(estado.Conta, estado), lead.Exigido(estado.Contato, estado), lead.Exigido(estado.ConvertidoEm, estado));
+                break;
+        }
+
+        return lead.Estado == estado ? lead : throw lead.Incoerente(estado);
+    }
 
     private static void Acrescentar(List<string> problemas, string? problema)
     {
@@ -247,13 +297,22 @@ public sealed class Lead
 
     private DadosDoContato ComoContato() => new(Nome, Email, Telefone);
 
-    private void Converter(Conta conta, Contato contato, DateTimeOffset em)
+    private void Converter(ContaId conta, ContatoId contato, DateTimeOffset em)
     {
         Situacao = SituacaoDoLead.Convertido;
-        Conta = conta.Id;
-        Contato = contato.Id;
+        Conta = conta;
+        Contato = contato;
         ConvertidoEm = em;
     }
+
+    private T Exigido<T>(T? valor, EstadoDoLead estado)
+        where T : class => valor ?? throw Incoerente(estado);
+
+    private T Exigido<T>(T? valor, EstadoDoLead estado)
+        where T : struct => valor ?? throw Incoerente(estado);
+
+    private ExcecaoDeDominio Incoerente(EstadoDoLead estado) =>
+        new($"O lead {Nome} está gravado como {estado.Situacao}, num estado que as regras não produzem.");
 
     private void Exigir(string oQue, params SituacaoDoLead[] situacoes)
     {
@@ -268,3 +327,15 @@ public sealed class Lead
         }
     }
 }
+
+/// <summary>O que muda num lead depois que ele chega: a situação e o que ela carrega.</summary>
+internal sealed record EstadoDoLead(
+    SituacaoDoLead Situacao,
+    Avaliacao Avaliacao,
+    DateTimeOffset? QualificadoEm = null,
+    MotivoDoDescarte? MotivoDoDescarte = null,
+    string? ObservacaoDoDescarte = null,
+    DateTimeOffset? DescartadoEm = null,
+    ContaId? Conta = null,
+    ContatoId? Contato = null,
+    DateTimeOffset? ConvertidoEm = null);

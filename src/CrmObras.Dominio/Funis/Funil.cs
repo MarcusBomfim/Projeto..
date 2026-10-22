@@ -37,7 +37,20 @@ public sealed class Funil
     /// <param name="nome">Como o funil se chama: "Obras privadas".</param>
     /// <param name="etapas">As etapas abertas, na ordem da venda. A Ganha e a Perdida o funil cria.</param>
     public Funil(string nome, IReadOnlyList<DadosDaEtapa> etapas)
+        : this(FunilId.Novo(), nome, ComIdsNovos(etapas), (EtapaId.Novo(), "Ganha"), (EtapaId.Novo(), "Perdida"))
     {
+    }
+
+    /// <param name="ganha">A identidade e o nome da etapa final de ganho.</param>
+    /// <param name="perdida">A identidade e o nome da etapa final de perda.</param>
+    private Funil(
+        FunilId id,
+        string nome,
+        IReadOnlyList<(EtapaId Id, DadosDaEtapa Dados)> etapas,
+        (EtapaId Id, string Nome) ganha,
+        (EtapaId Id, string Nome) perdida)
+    {
+        ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(etapas);
 
         var problemas = new List<string>();
@@ -54,13 +67,13 @@ public sealed class Funil
 
         var nomes = new List<string>();
 
-        foreach (var dados in etapas)
+        foreach (var (_, dados) in etapas)
         {
             problemas.AddRange(ProblemasDa(dados));
 
             if (Textos.Opcional(dados.Nome) is { } nomeDaEtapa)
             {
-                if (MesmoNome(nomeDaEtapa, "Ganha") || MesmoNome(nomeDaEtapa, "Perdida"))
+                if (MesmoNome(nomeDaEtapa, ganha.Nome.Trim()) || MesmoNome(nomeDaEtapa, perdida.Nome.Trim()))
                 {
                     problemas.Add($"{nomeDaEtapa} é etapa final, e o funil já a tem: a lista é só das etapas abertas.");
                 }
@@ -75,16 +88,16 @@ public sealed class Funil
 
         if (problemas.Count == 0)
         {
-            problemas.AddRange(ProblemasDaOrdem([.. etapas.Select(NaOrdem)]));
+            problemas.AddRange(ProblemasDaOrdem([.. etapas.Select(etapa => NaOrdem(etapa.Dados))]));
         }
 
         Lancar(problemas);
 
-        Id = FunilId.Novo();
+        Id = id;
         Nome = nome.Trim();
-        _abertas.AddRange(etapas.Select(dados => new Etapa(EtapaId.Novo(), TipoDeEtapa.Aberta, dados)));
-        Ganha = new Etapa(EtapaId.Novo(), TipoDeEtapa.Ganha, new DadosDaEtapa("Ganha", 100));
-        Perdida = new Etapa(EtapaId.Novo(), TipoDeEtapa.Perdida, new DadosDaEtapa("Perdida", 0));
+        _abertas.AddRange(etapas.Select(etapa => new Etapa(etapa.Id, TipoDeEtapa.Aberta, etapa.Dados)));
+        Ganha = new Etapa(ganha.Id, TipoDeEtapa.Ganha, new DadosDaEtapa(ganha.Nome, 100));
+        Perdida = new Etapa(perdida.Id, TipoDeEtapa.Perdida, new DadosDaEtapa(perdida.Nome, 0));
     }
 
     public FunilId Id { get; }
@@ -306,6 +319,60 @@ public sealed class Funil
 
     public override string ToString() => Nome;
 
+    /// <summary>
+    /// Refaz um funil gravado, com a identidade dele e a de cada etapa
+    /// (ADR-0010). As abertas passam pelas regras de quem cria o funil —
+    /// nomes, probabilidade que não cai, primeira sem requisito —, e as
+    /// arquivadas, pelas de cada etapa, com o nome que continua ocupado.
+    /// </summary>
+    internal static Funil Reconstituir(
+        FunilId id,
+        string nome,
+        IReadOnlyList<(EtapaId Id, DadosDaEtapa Dados)> abertas,
+        IReadOnlyList<(EtapaId Id, DadosDaEtapa Dados)> arquivadas,
+        (EtapaId Id, string Nome) ganha,
+        (EtapaId Id, string Nome) perdida)
+    {
+        ArgumentNullException.ThrowIfNull(arquivadas);
+
+        List<string> finais =
+        [
+            .. new[]
+            {
+                Textos.Problema(ganha.Nome, "o nome da etapa final de ganho", MaiorNomeDaEtapa),
+                Textos.Problema(perdida.Nome, "o nome da etapa final de perda", MaiorNomeDaEtapa),
+            }.OfType<string>(),
+        ];
+
+        if (finais.Count == 0 && MesmoNome(ganha.Nome.Trim(), perdida.Nome.Trim()))
+        {
+            finais.Add($"As duas etapas finais se chamam {ganha.Nome.Trim()}.");
+        }
+
+        Lancar(finais);
+
+        var funil = new Funil(id, nome, abertas, ganha, perdida);
+
+        foreach (var (etapa, dados) in arquivadas)
+        {
+            funil.GuardarArquivada(etapa, dados);
+        }
+
+        if (funil.Todas().Select(etapa => etapa.Id).Distinct().Count() != funil.Todas().Count())
+        {
+            throw new ExcecaoDeDominio($"O funil {funil.Nome} está gravado com a mesma etapa duas vezes.");
+        }
+
+        return funil;
+    }
+
+    private static List<(EtapaId Id, DadosDaEtapa Dados)> ComIdsNovos(IReadOnlyList<DadosDaEtapa> etapas)
+    {
+        ArgumentNullException.ThrowIfNull(etapas);
+
+        return [.. etapas.Select(dados => (EtapaId.Novo(), dados))];
+    }
+
     private static bool MesmoNome(string um, string outro) => string.Equals(um, outro, StringComparison.OrdinalIgnoreCase);
 
     private static IEnumerable<string> ProblemasDa(DadosDaEtapa dados)
@@ -360,6 +427,15 @@ public sealed class Funil
         {
             throw new ExcecaoDeDominio(string.Join(" ", problemas));
         }
+    }
+
+    private void GuardarArquivada(EtapaId id, DadosDaEtapa dados)
+    {
+        Lancar([.. ProblemasDa(dados), .. NomeRepetido(dados.Nome, alterada: null)]);
+
+        var etapa = new Etapa(id, TipoDeEtapa.Aberta, dados);
+        etapa.Arquivar();
+        _arquivadas.Add(etapa);
     }
 
     private IEnumerable<Etapa> Todas() => _abertas.Concat(_arquivadas).Append(Ganha).Append(Perdida);

@@ -6,4 +6,15 @@
   <PropertyGroup>
     <RootNamespace>CrmObras.Dominio</RootNamespace>
   </PropertyGroup>
+
+  <!--
+    Os internos do domínio — a reconstituição dos agregados gravados — são
+    visíveis para a infraestrutura, que grava e lê, e para os testes do
+    próprio domínio. Para mais ninguém: o teste de arquitetura confere a lista
+    (ADR-0010).
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="CrmObras.Infraestrutura" />
+    <InternalsVisibleTo Include="CrmObras.Dominio.Testes" />
+  </ItemGroup>
 </Project>
