@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml/badge.svg)](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml)
 
-O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões, a previsão de receita e os relatórios de onde se ganha e se perde, tudo gravado no PostgreSQL, com cada construtora vendo só o que é dela, e aberto por uma API REST — e, nas próximas partes, as telas e o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
+O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões, a previsão de receita e os relatórios de onde se ganha e se perde, tudo gravado no PostgreSQL, com cada construtora vendo só o que é dela, aberto por uma API REST e por telas no navegador — e, na próxima parte, o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
 
-C# 14 · .NET 10 · ASP.NET Core 10 · EF Core 10 · PostgreSQL 17 · xUnit v3 · Testcontainers · GitHub Actions
+C# 14 · .NET 10 · ASP.NET Core 10 · EF Core 10 · PostgreSQL 17 · React 19 · TypeScript · Vite · xUnit v3 · Vitest · Testcontainers · Playwright · GitHub Actions
 
 ## O problema
 
@@ -275,6 +275,22 @@ Ler é de qualquer pessoa da construtora; "quem vende" é o vendedor, o gerente 
 
 O exemplo desta página inteiro — do formulário do site aos relatórios do trimestre — roda pela API num teste, cada passo por quem tem o papel para ele e no dia em que acontece: [`ExemploDoReadmePelaApiTests`](tests/CrmObras.Api.Testes/ExemploDoReadmePelaApiTests.cs).
 
+### No navegador
+
+O funil em kanban, uma coluna por etapa, com o total e o ponderado de cada uma. Arrasta-se o cartão para outra etapa — ou, sem mouse, escolhe-se a etapa no seletor do próprio cartão —, e quem decide é a API: o cartão só muda de coluna com a resposta, e a guarita, sem quem decide, não entra no orçamento — a mensagem do domínio aparece na tela ([ADR-0015](docs/adr/0015-front-end-tipado-pelo-contrato-da-api.md)).
+
+![O funil em kanban, com as vendas da filial em cada etapa](docs/imagens/funil.png)
+
+A ficha do cliente, para quem vai atendê-lo: com quem se fala, o que está sendo vendido e em que etapa, o que está marcado — e a história, do mais recente para o mais antigo.
+
+![A ficha da filial da Rota Sul, com os contatos, as vendas, as atividades e a linha do tempo](docs/imagens/ficha.png)
+
+E a previsão: o previsto de cada mês sobre o teto do que está em aberto, a tabela dos mesmos números ao lado — é ela que um leitor de tela lê —, as vendas de cada mês, e à parte as que a previsão não conta.
+
+![A previsão de receita de seis meses, com o gráfico, a tabela e as vendas fora da previsão](docs/imagens/previsao.png)
+
+As três telas são do teste de ponta a ponta, [`carteira-do-readme.spec.ts`](e2e/testes/carteira-do-readme.spec.ts): ele cria a carteira da Rota Sul pela API, nas datas de hoje, abre o Chrome contra a pilha inteira e, com `IMAGENS=1`, tira estas fotos.
+
 ## Roteiro
 
 O projeto é construído em partes, cada uma entregue funcionando, testada e documentada.
@@ -287,7 +303,7 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 | 4 | Previsão e relatórios: receita prevista ponderada, conversão por etapa, ciclo de venda e motivos de perda | ✅ |
 | 5 | Persistência com EF Core e PostgreSQL, multiempresa com segurança por linha, testes com Testcontainers | ✅ |
 | 6 | API REST: JWT, autorização por papel, ProblemDetails, concorrência otimista e idempotência | ✅ |
-| 7 | Front-end em React: funil em kanban, ficha do cliente com a linha do tempo e painel da previsão | |
+| 7 | Front-end em React: funil em kanban, ficha do cliente com a linha do tempo e painel da previsão | ✅ |
 | 8 | Integração com o planejamento-obras por eventos — a proposta aceita vira obra —, observabilidade, Docker e entrega contínua | |
 
 ## O que já está pronto
@@ -355,6 +371,15 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 - **O dia é o da construtora.** O servidor conta em UTC; a validade da proposta, o "hoje" da agenda e os dias dos relatórios são os do fuso configurado — e a agenda aceita o fuso de quem a olha de longe.
 - **Documento OpenAPI** em `/openapi/v1.json`, com o esquema de autenticação e os cabeçalhos que cada endpoint exige.
 
+**Parte 7 — front-end**
+
+- **Funil em kanban**: uma coluna por etapa, com a probabilidade, quantas vendas, o total e o ponderado; cada cartão com a conta, o valor, a previsão, há quanto tempo está na etapa e o selo de parada. A etapa arquivada que ainda tem venda aparece no fim, e não recebe venda nova.
+- **Mover é pedir à API.** Arrastar o cartão — ou escolher a etapa no seletor dele, pelo teclado ou por leitor de tela — faz o mesmo `PUT`, com a versão que o quadro mostrou no `If-Match`. O cartão só muda de coluna com a resposta; a recusa do domínio aparece como ele a escreveu, e o quadro é lido de novo.
+- **Ficha do cliente**: os contatos, com o papel na compra, o principal marcado, e o e-mail e o telefone que abrem o programa certo; as vendas, com o nome da etapa; as atividades, com as atrasadas marcadas; e a linha do tempo.
+- **Previsão de receita**: o previsto de cada mês em barras de SVG feito à mão, sobre o teto do que está em aberto, com a tabela dos números ao lado; as vendas de cada mês; e as que a previsão não conta — vencidas, sem valor, sem data. O mês e o período ficam no endereço.
+- **Tipado pelo contrato.** O documento OpenAPI fica no repositório, um teste da API falha se ela mudar sem ele, e os tipos do front-end saem dele: caminho, parâmetro, resposta, enum — e os cabeçalhos exigidos: o `If-Match` esquecido é erro de compilação.
+- **Sessão pelo token** do provedor de identidade, guardado na aba: quem entrou e o cargo no topo; token recusado ou vencido leva de volta à entrada, dizendo por quê; e trocar de sessão esvazia o cache, para uma construtora não ver o que a outra leu.
+
 ## Decisões
 
 As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](docs/adr):
@@ -373,6 +398,7 @@ As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](d
 - [ADR-0012](docs/adr/0012-concorrencia-otimista-com-versao-explicita.md) — concorrência otimista, com a versão conferida pelo banco num comando só.
 - [ADR-0013](docs/adr/0013-criacao-com-chave-de-idempotencia.md) — criar exige chave de idempotência, gravada na mesma transação da criação.
 - [ADR-0014](docs/adr/0014-contrato-http.md) — o contrato HTTP: token com a construtora, política pelo cargo, versão na ETag, erro em ProblemDetails.
+- [ADR-0015](docs/adr/0015-front-end-tipado-pelo-contrato-da-api.md) — o front-end é tipado pelo contrato da API, a regra fica no domínio e o estado do servidor, no cache.
 
 E algumas que não precisaram de ADR:
 
@@ -398,7 +424,10 @@ E algumas que não precisaram de ADR:
 - **O formato de cada documento** escrito por extenso, e a leitura estrita contra cada jeito de estragá-lo.
 - **O banco de verdade**, num contêiner com PostgreSQL 17: cada restrição, cada chave estrangeira — inclusive a que não deixa uma venda apontar para a conta de outra construtora —, a segurança por linha em toda tabela, cada barreira do isolamento sem a outra, a conexão que volta ao pool sem levar a construtora, e as dez gravações simultâneas de que só uma passa.
 - **A API, em memória, contra o PostgreSQL do contêiner**: todo endpoint com política, `If-Match` nas alterações e chave de idempotência nas criações — conferido percorrendo os endpoints mapeados, e no documento OpenAPI —; o token sem assinatura, vencido, de outro emissor ou sem construtora; o que cada cargo pode e não pode; a repetição, a chave reutilizada e as dez criações simultâneas; as dez alterações simultâneas sobre a mesma versão; a construtora que não enxerga a outra; a conversão concorrente que não deixa conta a mais; e o aceite que, se a venda não grava, desfaz a proposta junto.
-- **O exemplo deste README**, de ponta a ponta — pelo domínio e pela API.
+- **O contrato publicado** é o que a API serve, e os tipos do front-end batem com ele.
+- **O front-end com a aplicação inteira aberta**: as rotas, a sessão e o cache de verdade, e só a API de mentira, que recusa o pedido que o teste não previu. O kanban que move pelo seletor e pelo arrasto com a versão lida, mostra a recusa do domínio e não pede nada quando o cartão é solto na própria coluna; a ficha; a previsão com a tabela; a sessão que vence com a tela aberta. E a geometria do gráfico, com números.
+- **De ponta a ponta, no Chrome**: a carteira da Rota Sul criada pela API, e o navegador arrastando a venda de verdade, vendo a recusa do domínio, abrindo a ficha e conferindo a previsão — contra o banco, a API e o front-end de produção.
+- **O exemplo deste README**, de ponta a ponta — pelo domínio, pela API e no navegador.
 - **Arquitetura.** O domínio só referencia a biblioteca padrão; toda classe pública é selada, estática ou abstrata; nenhuma propriedade tem `set` público; os valores não têm construtor público; e todo agregado tem identidade própria.
 
 ## Como rodar
@@ -428,6 +457,34 @@ dotnet user-jwts create --project src/CrmObras.Api --role vendedor --claim const
 
 Em desenvolvimento, a API conecta como `postgres`, um superusuário, que passa por cima da segurança por linha — o filtro do código continua separando as construtoras. Em produção, ela conecta com um papel comum, que a segurança por linha alcança ([ADR-0011](docs/adr/0011-documentos-jsonb-separados-por-construtora.md)). As alçadas de desconto e o fuso da construtora estão em `appsettings.json`.
 
+O front-end precisa do [Node.js 24](https://nodejs.org). Com a API no ar, ele abre em `http://localhost:5190` e pede o token — o do `dotnet user-jwts`, com o cargo, a construtora e o login que quiser. O Vite repassa `/api` para a API, e os dois ficam na mesma origem:
+
+```bash
+npm ci --prefix web
+npm --prefix web run dev
+```
+
+Os testes do front-end não precisam da API:
+
+```bash
+npm --prefix web run teste
+```
+
+Os de ponta a ponta compilam e sobem a API e o front-end de produção contra um PostgreSQL próprio, na porta 55434, e abrem o Google Chrome instalado. Com `IMAGENS=1`, refazem as imagens deste README:
+
+```bash
+docker run -d --name crm-obras-e2e -e POSTGRES_PASSWORD=postgres -p 55434:5432 postgres:17.6-alpine
+npm ci --prefix e2e
+npm --prefix e2e run teste
+```
+
+Quando a API muda, o contrato publicado é regravado pelo próprio teste dele, e os tipos do front-end saem do contrato:
+
+```bash
+ATUALIZAR_CONTRATO=1 dotnet test --solution CrmObras.slnx
+npm --prefix web run tipos
+```
+
 ## Estrutura
 
 ```text
@@ -455,6 +512,14 @@ tests/CrmObras.Dominio.Testes/         exemplos, propriedades, a reconstituiçã
 tests/CrmObras.Infraestrutura.Testes/  documentos, e o banco de verdade num contêiner
 tests/CrmObras.Api.Testes/             a API em memória, contra o banco num contêiner, e o exemplo deste README pela API
 tests/CrmObras.Arquitetura.Testes/     regras que o domínio não pode quebrar
+web/                                   o front-end em React
+  src/api/                             o cliente HTTP e os tipos gerados do contrato
+  src/sessao/                          o token, a entrada e quem entrou
+  src/funil/                           o kanban do funil, e mover a venda
+  src/contas/                          os clientes e a ficha de cada um
+  src/previsao/                        o painel da previsão, e a geometria do gráfico
+e2e/                                   os testes de ponta a ponta, no Chrome, contra a pilha inteira
 docs/adr/                              decisões de arquitetura
-docs/api/                              os problemas que a API devolve, e o que fazer com cada um
+docs/api/                              o contrato da API, em OpenAPI, e os problemas que ela devolve
+docs/imagens/                          as telas deste README, tiradas pelo teste de ponta a ponta
 ```

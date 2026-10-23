@@ -1,0 +1,85 @@
+name: Ponta a ponta
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # O Chrome do runner basta; o Playwright não precisa baixar o seu.
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+
+jobs:
+  e2e:
+    name: Navegador contra a pilha inteira
+    runs-on: ubuntu-latest
+
+    # O banco dos testes: um PostgreSQL vazio, que a API migra antes de subir.
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      E2E_BANCO: Host=localhost;Port=5432;Database=crm_obras_e2e;Username=postgres;Password=postgres
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            e2e/package-lock.json
+
+      - name: Restaurar ferramentas e dependências
+        run: |
+          dotnet tool restore
+          npm ci --prefix web
+          npm ci --prefix e2e
+
+      - name: Conferir tipos e formatação dos testes
+        working-directory: e2e
+        run: |
+          npm run tipagem
+          npm run formatacao
+
+      # O preteste compila a solução e o front-end de produção; o Playwright
+      # sobe a API e o front-end, e abre o Chrome.
+      - name: Executar os testes de ponta a ponta
+        working-directory: e2e
+        run: npm run teste
+
+      - name: Guardar o relatório do Playwright
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: relatorio-do-playwright
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
