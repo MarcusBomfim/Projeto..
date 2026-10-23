@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml/badge.svg)](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml)
 
-O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões, a previsão de receita e os relatórios de onde se ganha e se perde, tudo gravado no PostgreSQL, com cada construtora vendo só o que é dela — e, nas próximas partes, a API, as telas e o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
+O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões, a previsão de receita e os relatórios de onde se ganha e se perde, tudo gravado no PostgreSQL, com cada construtora vendo só o que é dela, e aberto por uma API REST — e, nas próximas partes, as telas e o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
 
-C# 14 · .NET 10 · EF Core 10 · PostgreSQL 17 · xUnit v3 · Testcontainers · GitHub Actions
+C# 14 · .NET 10 · ASP.NET Core 10 · EF Core 10 · PostgreSQL 17 · xUnit v3 · Testcontainers · GitHub Actions
 
 ## O problema
 
@@ -220,6 +220,61 @@ await contas.Atualizar(doBruno.Agregado, doBruno.Versao);
 
 E a conta de uma construtora não existe para outra — nem pelo código, que filtra toda consulta, nem pelo banco, que filtra de novo, linha a linha.
 
+### Pela API
+
+A mesma história, pela API REST. Cada pedido leva um JWT do provedor de identidade, com a construtora, o login e o cargo de quem pede — a construtora nunca vem na URL. Criar exige uma chave de idempotência:
+
+```http
+POST /api/leads
+Authorization: Bearer eyJhbGciOi…
+Idempotency-Key: 6f1c2a54-9b1e-4f07-8d4c-2c4e5a0b7d13
+Content-Type: application/json
+
+{ "nome": "Marina Costa", "origem": "Site", "documento": "11.222.333/0002-62", "email": "Marina.Costa@RotaSul.com.br", … }
+```
+
+```http
+HTTP/1.1 201 Created
+Location: /api/leads/0199e3b4-…
+ETag: "1"
+```
+
+Repetida com a mesma chave — a resposta se perdeu no sinal fraco da obra, e o celular tentou de novo —, a criação devolve a mesma resposta, com `Idempotent-Replayed: true`, e não cria um segundo lead ([ADR-0013](docs/adr/0013-criacao-com-chave-de-idempotencia.md)). Toda alteração leva a versão que leu. A conversão procura os duplicados no próprio servidor, e grava o lead e a conta nova numa transação só:
+
+```http
+POST /api/leads/0199e3b4-…/conversao
+If-Match: "4"
+
+{}
+```
+
+Se alguém mexeu no lead no meio, a resposta é 412, com a versão atual. E a regra do negócio responde na língua de quem usa — todo erro sai em ProblemDetails, com um tipo que aponta para a [explicação](docs/api/problemas.md):
+
+```json
+{
+  "type": "https://github.com/MarcusBomfim/Projeto../blob/main/docs/api/problemas.md#regra-do-negocio",
+  "title": "O pedido fere uma regra do negócio.",
+  "status": 422,
+  "detail": "O desconto de 12% passa da alçada do vendedor, de 5%: precisa da aprovação do diretor.",
+  "instance": "POST /api/propostas/0199e3b4-…/envio",
+  "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+}
+```
+
+Ler é de qualquer pessoa da construtora; "quem vende" é o vendedor, o gerente ou o diretor; "a gerência", o gerente ou o diretor ([ADR-0014](docs/adr/0014-contrato-http.md)):
+
+| Recurso | Quem altera | O que mais faz |
+|---|---|---|
+| `/api/contas` | quem vende; remover, a gerência | contatos, contato principal, linha do tempo |
+| `/api/leads` | quem vende; remover, a gerência | qualificação, descarte, duplicados, conversão |
+| `/api/funis` | a gerência | o funil padrão, as etapas, o quadro |
+| `/api/oportunidades` | quem vende; passar adiante e remover, a gerência | a venda do lead, etapa, ganho, perda, reabertura |
+| `/api/atividades` | quem vende; remover, a gerência | reagendar, passar adiante, concluir, cancelar, a agenda |
+| `/api/propostas` | quem vende; aprovar desconto e remover, a gerência | versões, envio, o aceite que ganha a venda, recusa |
+| `/api/relatorios` | ninguém: é só leitura | previsão, conversão, ciclo e perdas |
+
+O exemplo desta página inteiro — do formulário do site aos relatórios do trimestre — roda pela API num teste, cada passo por quem tem o papel para ele e no dia em que acontece: [`ExemploDoReadmePelaApiTests`](tests/CrmObras.Api.Testes/ExemploDoReadmePelaApiTests.cs).
+
 ## Roteiro
 
 O projeto é construído em partes, cada uma entregue funcionando, testada e documentada.
@@ -231,7 +286,7 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 | 3 | Atividades e propostas: agenda com atrasos, propostas com versões e desconto com alçada de aprovação | ✅ |
 | 4 | Previsão e relatórios: receita prevista ponderada, conversão por etapa, ciclo de venda e motivos de perda | ✅ |
 | 5 | Persistência com EF Core e PostgreSQL, multiempresa com segurança por linha, testes com Testcontainers | ✅ |
-| 6 | API REST: JWT, autorização por papel, ProblemDetails, concorrência otimista e idempotência | |
+| 6 | API REST: JWT, autorização por papel, ProblemDetails, concorrência otimista e idempotência | ✅ |
 | 7 | Front-end em React: funil em kanban, ficha do cliente com a linha do tempo e painel da previsão | |
 | 8 | Integração com o planejamento-obras por eventos — a proposta aceita vira obra —, observabilidade, Docker e entrega contínua | |
 
@@ -286,6 +341,20 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 - **Concorrência otimista** com a versão no `where`, num comando só: de dez gravações ao mesmo tempo a partir da mesma versão, passa uma. O que o banco recusa vira exceção com nome e mensagem para gente.
 - **Repositórios que respondem ao que o domínio pergunta**: a conta pelo documento, os leads de uma situação, as vendas de um funil, a agenda de um vendedor, a história de uma conta.
 
+**Parte 6 — API REST**
+
+- **JWT do provedor de identidade**, com a construtora, o login e o cargo de quem pede. A API confere assinatura, emissor, audiência e validade, e não emite token; em desenvolvimento, quem emite é o `dotnet user-jwts`.
+- **Autorização pelo cargo do comercial.** Ler é de qualquer pessoa da construtora; cuidar de leads, contas, vendas, atividades e propostas, de quem vende; configurar funis, aprovar desconto, passar a venda a outro vendedor e remover o que foi cadastrado errado, da gerência. Endpoint que esquecer a política ainda exige ser da construtora, e, sem token, nem rota que não existe se descobre.
+- **Quem pede é quem responde**: o login do token é o responsável da venda aberta, da atividade marcada e do envio da proposta; o cargo mais alto dele é a alçada para o desconto.
+- **A versão na ETag.** `If-Match` em toda alteração — sem ele, 428; com versão velha, 412 e a atual no corpo —, e `If-None-Match` com a versão atual dá 304.
+- **Criar é seguro de repetir.** A `Idempotency-Key` é reservada na mesma transação da criação; a repetição recebe a resposta original, igual, e dez repetições ao mesmo tempo criam uma só. A mesma chave com outro pedido é recusada; o pedido que falha não gasta a chave.
+- **O que grava dois agregados grava numa transação**: o lead convertido e a conta nova; a proposta aceita e a venda ganha.
+- **Os duplicados procurados no servidor.** O banco escolhe as contas candidatas — mesmo documento ou raiz de CNPJ, mesmo nome, e-mail, telefone ou domínio de empresa —, e o domínio diz o que cada uma tem em comum com o lead.
+- **Todo erro em ProblemDetails** (RFC 9457), de um catálogo com a explicação de cada tipo em [`docs/api/problemas.md`](docs/api/problemas.md): a regra do negócio com a mensagem do domínio; o erro interno, só com o id do rastreio.
+- **Entrada estrita**: campo que falta ou sobra, nulo onde não cabe, enum em número, número em texto, dia que não vem como `2026-10-19` — 400, dizendo o quê.
+- **O dia é o da construtora.** O servidor conta em UTC; a validade da proposta, o "hoje" da agenda e os dias dos relatórios são os do fuso configurado — e a agenda aceita o fuso de quem a olha de longe.
+- **Documento OpenAPI** em `/openapi/v1.json`, com o esquema de autenticação e os cabeçalhos que cada endpoint exige.
+
 ## Decisões
 
 As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](docs/adr):
@@ -302,6 +371,8 @@ As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](d
 - [ADR-0010](docs/adr/0010-reconstituicao-dos-agregados-passa-pelas-regras.md) — a reconstituição dos agregados é interna, e passa pelas regras.
 - [ADR-0011](docs/adr/0011-documentos-jsonb-separados-por-construtora.md) — cada agregado é um documento `jsonb`, e cada construtora só enxerga os seus.
 - [ADR-0012](docs/adr/0012-concorrencia-otimista-com-versao-explicita.md) — concorrência otimista, com a versão conferida pelo banco num comando só.
+- [ADR-0013](docs/adr/0013-criacao-com-chave-de-idempotencia.md) — criar exige chave de idempotência, gravada na mesma transação da criação.
+- [ADR-0014](docs/adr/0014-contrato-http.md) — o contrato HTTP: token com a construtora, política pelo cargo, versão na ETag, erro em ProblemDetails.
 
 E algumas que não precisaram de ADR:
 
@@ -326,7 +397,8 @@ E algumas que não precisaram de ADR:
 - **A reconstituição** de cada agregado, ida e volta, e cada estado que as regras não produzem — passagem que não encadeia, rascunho no meio das versões, lead convertido sem conta — recusado com a razão.
 - **O formato de cada documento** escrito por extenso, e a leitura estrita contra cada jeito de estragá-lo.
 - **O banco de verdade**, num contêiner com PostgreSQL 17: cada restrição, cada chave estrangeira — inclusive a que não deixa uma venda apontar para a conta de outra construtora —, a segurança por linha em toda tabela, cada barreira do isolamento sem a outra, a conexão que volta ao pool sem levar a construtora, e as dez gravações simultâneas de que só uma passa.
-- **O exemplo deste README**, de ponta a ponta.
+- **A API, em memória, contra o PostgreSQL do contêiner**: todo endpoint com política, `If-Match` nas alterações e chave de idempotência nas criações — conferido percorrendo os endpoints mapeados, e no documento OpenAPI —; o token sem assinatura, vencido, de outro emissor ou sem construtora; o que cada cargo pode e não pode; a repetição, a chave reutilizada e as dez criações simultâneas; as dez alterações simultâneas sobre a mesma versão; a construtora que não enxerga a outra; a conversão concorrente que não deixa conta a mais; e o aceite que, se a venda não grava, desfaz a proposta junto.
+- **O exemplo deste README**, de ponta a ponta — pelo domínio e pela API.
 - **Arquitetura.** O domínio só referencia a biblioteca padrão; toda classe pública é selada, estática ou abstrata; nenhuma propriedade tem `set` público; os valores não têm construtor público; e todo agregado tem identidade própria.
 
 ## Como rodar
@@ -338,6 +410,23 @@ dotnet test --solution CrmObras.slnx
 ```
 
 Sem Docker, os testes de banco são pulados, com o motivo; no CI, Docker indisponível é falha. As migrações são geradas com o `dotnet-ef` do repositório (`dotnet tool restore`).
+
+Para criar o banco num PostgreSQL local:
+
+```bash
+docker run -d --name crm-obras-db -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:17.6-alpine
+dotnet tool restore
+dotnet ef database update --project src/CrmObras.Infraestrutura --connection "Host=localhost;Database=crm_obras;Username=postgres;Password=postgres"
+```
+
+Para subir a API em `http://localhost:5090` — o documento OpenAPI fica em `/openapi/v1.json` — e gerar um token de desenvolvimento, com a construtora, o login e o cargo que quiser:
+
+```bash
+dotnet run --project src/CrmObras.Api
+dotnet user-jwts create --project src/CrmObras.Api --role vendedor --claim construtora=0199e3b4-0000-7000-8000-000000000001 --claim preferred_username=carlos.souza
+```
+
+Em desenvolvimento, a API conecta como `postgres`, um superusuário, que passa por cima da segurança por linha — o filtro do código continua separando as construtoras. Em produção, ela conecta com um papel comum, que a segurança por linha alcança ([ADR-0011](docs/adr/0011-documentos-jsonb-separados-por-construtora.md)). As alçadas de desconto e o fuso da construtora estão em `appsettings.json`.
 
 ## Estrutura
 
@@ -356,9 +445,16 @@ src/CrmObras.Dominio/                  regras do negócio, sem dependências
   Relatorios/                          previsão de receita, conversão por etapa, ciclo de venda e motivos de perda
 src/CrmObras.Infraestrutura/           o que o domínio não sabe
   Documentos/                          o formato gravado de cada agregado, e a leitura estrita
-  Persistencia/                        contexto, registros, migrações, repositórios e a construtora em cada conexão
+  Persistencia/                        contexto, registros, migrações, repositórios, chaves de idempotência e a construtora em cada conexão
+src/CrmObras.Api/                      a API REST
+  Hospedagem/                          os serviços, o caminho de cada pedido e o documento OpenAPI
+  Seguranca/                           papéis, políticas, e a construtora e quem pede, lidos do token
+  Http/                                ETag, If-Match, idempotência, o catálogo dos problemas e a tradução das exceções
+  Recursos/                            um recurso por agregado, a agenda, o quadro, os relatórios e a linha do tempo
 tests/CrmObras.Dominio.Testes/         exemplos, propriedades, a reconstituição e o exemplo deste README
 tests/CrmObras.Infraestrutura.Testes/  documentos, e o banco de verdade num contêiner
+tests/CrmObras.Api.Testes/             a API em memória, contra o banco num contêiner, e o exemplo deste README pela API
 tests/CrmObras.Arquitetura.Testes/     regras que o domínio não pode quebrar
 docs/adr/                              decisões de arquitetura
+docs/api/                              os problemas que a API devolve, e o que fazer com cada um
 ```
