@@ -1,0 +1,23 @@
+.topo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.escolha {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.vazio {
+  padding: 2rem;
+  border: 1px dashed var(--borda-forte);
+  border-radius: var(--raio);
+  color: var(--texto-suave);
+  text-align: center;
+}

@@ -1,0 +1,5353 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "CRM de Obras",
+    "description": "Clientes, leads, funis, vendas, atividades e propostas de uma construtora. Toda chamada leva um JWT com a construtora de quem pede; os erros vêm em ProblemDetails (RFC 9457).",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/contas/{id}/linha-do-tempo": {
+      "get": {
+        "tags": [
+          "Contas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AcontecimentoResposta"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agenda": {
+      "get": {
+        "tags": [
+          "Atividades"
+        ],
+        "parameters": [
+          {
+            "name": "responsavel",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fuso",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgendaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/funis/{id}/quadro": {
+      "get": {
+        "tags": [
+          "Oportunidades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuadroResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/atividades": {
+      "get": {
+        "tags": [
+          "Atividades"
+        ],
+        "parameters": [
+          {
+            "name": "conta",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResumoDaAtividadeResposta"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Atividades"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Um valor único por operação — um UUID —, repetido em cada nova tentativa. A repetição recebe a resposta da primeira vez.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaAtividade"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtividadeResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/atividades/{id}": {
+      "get": {
+        "tags": [
+          "Atividades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtividadeResposta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Atividades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/atividades/{id}/data": {
+      "put": {
+        "tags": [
+          "Atividades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Reagendamento"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtividadeResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/atividades/{id}/responsavel": {
+      "put": {
+        "tags": [
+          "Atividades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoResponsavel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtividadeResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/atividades/{id}/conclusao": {
+      "post": {
+        "tags": [
+          "Atividades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Conclusao"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtividadeResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/atividades/{id}/cancelamento": {
+      "post": {
+        "tags": [
+          "Atividades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cancelamento"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtividadeResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contas": {
+      "get": {
+        "tags": [
+          "Contas"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResumoResposta"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Contas"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Um valor único por operação — um UUID —, repetido em cada nova tentativa. A repetição recebe a resposta da primeira vez.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaConta"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contas/{id}": {
+      "get": {
+        "tags": [
+          "Contas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContaResposta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Contas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlteracaoDaConta"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContaResposta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Contas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/contas/{id}/contatos": {
+      "post": {
+        "tags": [
+          "Contas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoContato"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contas/{id}/contatos/{contato}": {
+      "put": {
+        "tags": [
+          "Contas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "contato",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoContato"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContaResposta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Contas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "contato",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contas/{id}/principal": {
+      "put": {
+        "tags": [
+          "Contas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoPrincipal"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/funis": {
+      "get": {
+        "tags": [
+          "Funis"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResumoResposta"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Funis"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Um valor único por operação — um UUID —, repetido em cada nova tentativa. A repetição recebe a resposta da primeira vez.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoFunil"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunilResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/funis/padrao": {
+      "post": {
+        "tags": [
+          "Funis"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Um valor único por operação — um UUID —, repetido em cada nova tentativa. A repetição recebe a resposta da primeira vez.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunilResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/funis/{id}": {
+      "get": {
+        "tags": [
+          "Funis"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunilResposta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Funis"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoNome"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunilResposta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Funis"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/funis/{id}/etapas": {
+      "post": {
+        "tags": [
+          "Funis"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaEtapa"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunilResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/funis/{id}/etapas/{etapa}": {
+      "put": {
+        "tags": [
+          "Funis"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "etapa",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaEtapa"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunilResposta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Funis"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "etapa",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoNome"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunilResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/funis/{id}/etapas/{etapa}/posicao": {
+      "put": {
+        "tags": [
+          "Funis"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "etapa",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaPosicao"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunilResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/funis/{id}/etapas/{etapa}/arquivamento": {
+      "post": {
+        "tags": [
+          "Funis"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "etapa",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunilResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/funis/{id}/etapas/{etapa}/reativacao": {
+      "post": {
+        "tags": [
+          "Funis"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "etapa",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunilResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads": {
+      "get": {
+        "tags": [
+          "Leads"
+        ],
+        "parameters": [
+          {
+            "name": "situacao",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResumoDoLeadResposta"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Leads"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Um valor único por operação — um UUID —, repetido em cada nova tentativa. A repetição recebe a resposta da primeira vez.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoLead"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/{id}": {
+      "get": {
+        "tags": [
+          "Leads"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadResposta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Leads"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/leads/{id}/avaliacao": {
+      "put": {
+        "tags": [
+          "Leads"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaAvaliacao"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/{id}/qualificacao": {
+      "post": {
+        "tags": [
+          "Leads"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/{id}/descarte": {
+      "post": {
+        "tags": [
+          "Leads"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Descarte"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/{id}/reabertura": {
+      "post": {
+        "tags": [
+          "Leads"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/{id}/duplicados": {
+      "get": {
+        "tags": [
+          "Leads"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PossivelDuplicadoResposta"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/{id}/conversao": {
+      "post": {
+        "tags": [
+          "Leads"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Conversao"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversaoResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oportunidades": {
+      "get": {
+        "tags": [
+          "Oportunidades"
+        ],
+        "parameters": [
+          {
+            "name": "funil",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "conta",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResumoDaOportunidadeResposta"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Oportunidades"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Um valor único por operação — um UUID —, repetido em cada nova tentativa. A repetição recebe a resposta da primeira vez.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaOportunidade"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OportunidadeResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oportunidades/do-lead": {
+      "post": {
+        "tags": [
+          "Oportunidades"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Um valor único por operação — um UUID —, repetido em cada nova tentativa. A repetição recebe a resposta da primeira vez.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OportunidadeDoLead"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OportunidadeResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oportunidades/{id}": {
+      "get": {
+        "tags": [
+          "Oportunidades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OportunidadeResposta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Oportunidades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlteracaoDaOportunidade"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OportunidadeResposta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Oportunidades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/oportunidades/{id}/responsavel": {
+      "put": {
+        "tags": [
+          "Oportunidades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoResponsavel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OportunidadeResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oportunidades/{id}/etapa": {
+      "put": {
+        "tags": [
+          "Oportunidades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EtapaDeDestino"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OportunidadeResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oportunidades/{id}/ganho": {
+      "post": {
+        "tags": [
+          "Oportunidades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Ganho"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OportunidadeResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oportunidades/{id}/perda": {
+      "post": {
+        "tags": [
+          "Oportunidades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PerdaDaVenda"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OportunidadeResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oportunidades/{id}/reabertura": {
+      "post": {
+        "tags": [
+          "Oportunidades"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EtapaDeDestino"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OportunidadeResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/propostas": {
+      "get": {
+        "tags": [
+          "Propostas"
+        ],
+        "parameters": [
+          {
+            "name": "oportunidade",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResumoDaPropostaResposta"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Propostas"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Um valor único por operação — um UUID —, repetido em cada nova tentativa. A repetição recebe a resposta da primeira vez.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaProposta"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropostaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/propostas/{id}": {
+      "get": {
+        "tags": [
+          "Propostas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropostaResposta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Propostas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/propostas/{id}/rascunho": {
+      "put": {
+        "tags": [
+          "Propostas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConteudoDaVersao"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropostaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/propostas/{id}/versoes": {
+      "post": {
+        "tags": [
+          "Propostas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropostaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/propostas/{id}/aprovacao": {
+      "post": {
+        "tags": [
+          "Propostas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropostaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/propostas/{id}/envio": {
+      "post": {
+        "tags": [
+          "Propostas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropostaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/propostas/{id}/aceite": {
+      "post": {
+        "tags": [
+          "Propostas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AceiteResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/propostas/{id}/recusa": {
+      "post": {
+        "tags": [
+          "Propostas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "A versão lida — a ETag da leitura, como \"3\". Sem ela, 428; desatualizada, 412.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Recusa"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropostaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/relatorios/previsao": {
+      "get": {
+        "tags": [
+          "Relatórios"
+        ],
+        "parameters": [
+          {
+            "name": "primeiro",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meses",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrevisaoResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/relatorios/conversao": {
+      "get": {
+        "tags": [
+          "Relatórios"
+        ],
+        "parameters": [
+          {
+            "name": "funil",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "de",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversaoPorEtapaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/relatorios/ciclo": {
+      "get": {
+        "tags": [
+          "Relatórios"
+        ],
+        "parameters": [
+          {
+            "name": "funil",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "de",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CicloDeVendaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/relatorios/perdas": {
+      "get": {
+        "tags": [
+          "Relatórios"
+        ],
+        "parameters": [
+          {
+            "name": "funil",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "de",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MotivosDePerdaResposta"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AceiteResposta": {
+        "required": [
+          "proposta",
+          "oportunidade",
+          "versaoDaOportunidade"
+        ],
+        "type": "object",
+        "properties": {
+          "proposta": {
+            "$ref": "#/components/schemas/PropostaResposta"
+          },
+          "oportunidade": {
+            "$ref": "#/components/schemas/OportunidadeResposta"
+          },
+          "versaoDaOportunidade": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AcontecimentoResposta": {
+        "required": [
+          "em",
+          "descricao",
+          "oportunidade"
+        ],
+        "type": "object",
+        "properties": {
+          "em": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "oportunidade": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AgendaResposta": {
+        "required": [
+          "dia",
+          "responsavel",
+          "atrasadas",
+          "deHoje",
+          "semProximoPasso"
+        ],
+        "type": "object",
+        "properties": {
+          "dia": {
+            "type": "string",
+            "format": "date"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "atrasadas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AtividadeNaAgendaResposta"
+            }
+          },
+          "deHoje": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AtividadeNaAgendaResposta"
+            }
+          },
+          "semProximoPasso": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VendaSemProximoPassoResposta"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "AlteracaoDaConta": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "AlteracaoDaOportunidade": {
+        "type": "object",
+        "properties": {
+          "titulo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "valorEstimado": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "previsaoDeFechamento": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "quemDecide": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AprovacaoResposta": {
+        "required": [
+          "aprovador",
+          "em"
+        ],
+        "type": "object",
+        "properties": {
+          "aprovador": {
+            "$ref": "#/components/schemas/ComercialResposta"
+          },
+          "em": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AtividadeNaAgendaResposta": {
+        "required": [
+          "id",
+          "tipo",
+          "assunto",
+          "previstaPara",
+          "conta",
+          "nomeDaConta",
+          "oportunidade",
+          "adiamentos",
+          "versao"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeAtividade"
+          },
+          "assunto": {
+            "type": "string"
+          },
+          "previstaPara": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "conta": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nomeDaConta": {
+            "type": "string"
+          },
+          "oportunidade": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "adiamentos": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "versao": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AtividadeResposta": {
+        "required": [
+          "id",
+          "conta",
+          "oportunidade",
+          "tipo",
+          "assunto",
+          "com",
+          "detalhes",
+          "previstaPara",
+          "adiamentos",
+          "responsavel",
+          "situacao",
+          "atrasada",
+          "resultado",
+          "motivoDoCancelamento",
+          "criadaEm",
+          "encerradaEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "conta": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "oportunidade": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeAtividade"
+          },
+          "assunto": {
+            "type": "string"
+          },
+          "com": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "detalhes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "previstaPara": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "adiamentos": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaAtividade"
+          },
+          "atrasada": {
+            "type": "boolean"
+          },
+          "resultado": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "motivoDoCancelamento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "criadaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "encerradaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AvaliacaoResposta": {
+        "required": [
+          "orcamento",
+          "falaComQuemDecide",
+          "necessidade",
+          "prazo",
+          "qualifica",
+          "pendencias"
+        ],
+        "type": "object",
+        "properties": {
+          "orcamento": {
+            "$ref": "#/components/schemas/Resposta"
+          },
+          "falaComQuemDecide": {
+            "$ref": "#/components/schemas/Resposta"
+          },
+          "necessidade": {
+            "$ref": "#/components/schemas/Resposta"
+          },
+          "prazo": {
+            "$ref": "#/components/schemas/Resposta"
+          },
+          "qualifica": {
+            "type": "boolean"
+          },
+          "pendencias": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "Cancelamento": {
+        "required": [
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Cargo": {
+        "enum": [
+          "Vendedor",
+          "Gerente",
+          "Diretor"
+        ]
+      },
+      "CartaoResposta": {
+        "required": [
+          "id",
+          "titulo",
+          "conta",
+          "nomeDaConta",
+          "responsavel",
+          "valorEstimado",
+          "previsaoDeFechamento",
+          "entrouNaEtapaEm",
+          "parada",
+          "versao"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "conta": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nomeDaConta": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "valorEstimado": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "previsaoDeFechamento": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "entrouNaEtapaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "parada": {
+            "type": "boolean"
+          },
+          "versao": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CicloDeVendaResposta": {
+        "required": [
+          "primeiroDia",
+          "ultimoDia",
+          "ganhas",
+          "medianaEmDias",
+          "mediaEmDias",
+          "maisCurtoEmDias",
+          "maisLongoEmDias",
+          "etapas"
+        ],
+        "type": "object",
+        "properties": {
+          "primeiroDia": {
+            "type": "string",
+            "format": "date"
+          },
+          "ultimoDia": {
+            "type": "string",
+            "format": "date"
+          },
+          "ganhas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "medianaEmDias": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "mediaEmDias": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "maisCurtoEmDias": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "maisLongoEmDias": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "etapas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TempoNaEtapaResposta"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ColunaResposta": {
+        "required": [
+          "etapa",
+          "nome",
+          "probabilidade",
+          "diasEsperados",
+          "arquivada",
+          "total",
+          "ponderado",
+          "semValor",
+          "oportunidades"
+        ],
+        "type": "object",
+        "properties": {
+          "etapa": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "probabilidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "diasEsperados": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "arquivada": {
+            "type": "boolean"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "ponderado": {
+            "type": "number",
+            "format": "double"
+          },
+          "semValor": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "oportunidades": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartaoResposta"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ComercialResposta": {
+        "required": [
+          "login",
+          "cargo"
+        ],
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": "string"
+          },
+          "cargo": {
+            "$ref": "#/components/schemas/Cargo"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Conclusao": {
+        "required": [
+          "resultado"
+        ],
+        "type": "object",
+        "properties": {
+          "resultado": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContaResposta": {
+        "required": [
+          "id",
+          "nome",
+          "documento",
+          "contatos",
+          "principal"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contatos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContatoResposta"
+            }
+          },
+          "principal": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContatoResposta": {
+        "required": [
+          "id",
+          "nome",
+          "cargo",
+          "email",
+          "telefone",
+          "papel"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "cargo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "telefone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "papel": {
+            "$ref": "#/components/schemas/PapelNaCompra"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ConteudoDaVersao": {
+        "required": [
+          "itens",
+          "desconto",
+          "validaAte"
+        ],
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemDoConteudo"
+            }
+          },
+          "desconto": {
+            "type": "number",
+            "format": "double"
+          },
+          "validaAte": {
+            "type": "string",
+            "format": "date"
+          },
+          "condicoesDePagamento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "Conversao": {
+        "type": "object",
+        "properties": {
+          "conta": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ConversaoDoLeadResposta": {
+        "required": [
+          "conta",
+          "contato",
+          "em"
+        ],
+        "type": "object",
+        "properties": {
+          "conta": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contato": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "em": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ConversaoNaEtapaResposta": {
+        "required": [
+          "etapa",
+          "nome",
+          "probabilidade",
+          "chegaram",
+          "avancaram",
+          "ganhas",
+          "perdidas",
+          "emAndamento",
+          "taxaDeGanho"
+        ],
+        "type": "object",
+        "properties": {
+          "etapa": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "probabilidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "chegaram": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "avancaram": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ganhas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "perdidas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "emAndamento": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "taxaDeGanho": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ConversaoPorEtapaResposta": {
+        "required": [
+          "primeiroDia",
+          "ultimoDia",
+          "vendas",
+          "etapas"
+        ],
+        "type": "object",
+        "properties": {
+          "primeiroDia": {
+            "type": "string",
+            "format": "date"
+          },
+          "ultimoDia": {
+            "type": "string",
+            "format": "date"
+          },
+          "vendas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "etapas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConversaoNaEtapaResposta"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ConversaoResposta": {
+        "required": [
+          "lead",
+          "conta",
+          "versaoDaConta"
+        ],
+        "type": "object",
+        "properties": {
+          "lead": {
+            "$ref": "#/components/schemas/LeadResposta"
+          },
+          "conta": {
+            "$ref": "#/components/schemas/ContaResposta"
+          },
+          "versaoDaConta": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Descarte": {
+        "required": [
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "$ref": "#/components/schemas/MotivoDoDescarte"
+          },
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "DescarteResposta": {
+        "required": [
+          "motivo",
+          "observacao",
+          "em"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "$ref": "#/components/schemas/MotivoDoDescarte"
+          },
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "em": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EtapaDeDestino": {
+        "required": [
+          "etapa"
+        ],
+        "type": "object",
+        "properties": {
+          "etapa": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EtapaResposta": {
+        "required": [
+          "id",
+          "nome",
+          "tipo",
+          "probabilidade",
+          "diasEsperados",
+          "requisitos"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeEtapa"
+          },
+          "probabilidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "diasEsperados": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "requisitos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Requisito"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "FunilResposta": {
+        "required": [
+          "id",
+          "nome",
+          "etapas",
+          "arquivadas"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "etapas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EtapaResposta"
+            }
+          },
+          "arquivadas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EtapaResposta"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "Ganho": {
+        "required": [
+          "valorFechado"
+        ],
+        "type": "object",
+        "properties": {
+          "valorFechado": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IndicioResposta": {
+        "required": [
+          "semelhanca",
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "semelhanca": {
+            "$ref": "#/components/schemas/Semelhanca"
+          },
+          "motivo": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ItemDoConteudo": {
+        "required": [
+          "descricao",
+          "quantidade",
+          "unidade",
+          "precoUnitario"
+        ],
+        "type": "object",
+        "properties": {
+          "descricao": {
+            "type": "string"
+          },
+          "quantidade": {
+            "type": "number",
+            "format": "double"
+          },
+          "unidade": {
+            "type": "string"
+          },
+          "precoUnitario": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ItemResposta": {
+        "required": [
+          "descricao",
+          "quantidade",
+          "unidade",
+          "precoUnitario",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "descricao": {
+            "type": "string"
+          },
+          "quantidade": {
+            "type": "number",
+            "format": "double"
+          },
+          "unidade": {
+            "type": "string"
+          },
+          "precoUnitario": {
+            "type": "number",
+            "format": "double"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LeadResposta": {
+        "required": [
+          "id",
+          "nome",
+          "empresa",
+          "documento",
+          "email",
+          "telefone",
+          "interesse",
+          "origem",
+          "detalheDaOrigem",
+          "chegouEm",
+          "situacao",
+          "avaliacao",
+          "qualificadoEm",
+          "descarte",
+          "conversao"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "empresa": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "telefone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "interesse": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "origem": {
+            "$ref": "#/components/schemas/OrigemDoLead"
+          },
+          "detalheDaOrigem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "chegouEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDoLead"
+          },
+          "avaliacao": {
+            "$ref": "#/components/schemas/AvaliacaoResposta"
+          },
+          "qualificadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "descarte": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DescarteResposta"
+              }
+            ]
+          },
+          "conversao": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ConversaoDoLeadResposta"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "MesDaPrevisaoResposta": {
+        "required": [
+          "mes",
+          "ganho",
+          "emAberto",
+          "ponderado",
+          "previsto",
+          "abertas"
+        ],
+        "type": "object",
+        "properties": {
+          "mes": {
+            "type": "string"
+          },
+          "ganho": {
+            "type": "number",
+            "format": "double"
+          },
+          "emAberto": {
+            "type": "number",
+            "format": "double"
+          },
+          "ponderado": {
+            "type": "number",
+            "format": "double"
+          },
+          "previsto": {
+            "type": "number",
+            "format": "double"
+          },
+          "abertas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VendaNoRelatorioResposta"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MotivoDaPerda": {
+        "enum": [
+          "Preco",
+          "Prazo",
+          "ConcorrenteEscolhido",
+          "ProjetoCancelado",
+          "SemCredito",
+          "SemResposta",
+          "Outro"
+        ]
+      },
+      "MotivoDoDescarte": {
+        "enum": [
+          "SemOrcamento",
+          "SemInteresse",
+          "PrazoDistante",
+          "ForaDaRegiao",
+          "ConcorrenteEscolhido",
+          "NaoResponde",
+          "Duplicado",
+          "Outro"
+        ]
+      },
+      "MotivosDePerdaResposta": {
+        "required": [
+          "primeiroDia",
+          "ultimoDia",
+          "perdidas",
+          "valor",
+          "semValor",
+          "porMotivo",
+          "porConcorrente",
+          "porEtapa"
+        ],
+        "type": "object",
+        "properties": {
+          "primeiroDia": {
+            "type": "string",
+            "format": "date"
+          },
+          "ultimoDia": {
+            "type": "string",
+            "format": "date"
+          },
+          "perdidas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "valor": {
+            "type": "number",
+            "format": "double"
+          },
+          "semValor": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "porMotivo": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PerdasPorMotivoResposta"
+            }
+          },
+          "porConcorrente": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PerdasParaConcorrenteResposta"
+            }
+          },
+          "porEtapa": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PerdasNaEtapaResposta"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovaAtividade": {
+        "required": [
+          "conta",
+          "tipo",
+          "assunto",
+          "previstaPara"
+        ],
+        "type": "object",
+        "properties": {
+          "conta": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeAtividade"
+          },
+          "assunto": {
+            "type": "string"
+          },
+          "previstaPara": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "com": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "detalhes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "oportunidade": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovaAvaliacao": {
+        "required": [
+          "orcamento",
+          "falaComQuemDecide",
+          "necessidade",
+          "prazo"
+        ],
+        "type": "object",
+        "properties": {
+          "orcamento": {
+            "$ref": "#/components/schemas/Resposta"
+          },
+          "falaComQuemDecide": {
+            "$ref": "#/components/schemas/Resposta"
+          },
+          "necessidade": {
+            "$ref": "#/components/schemas/Resposta"
+          },
+          "prazo": {
+            "$ref": "#/components/schemas/Resposta"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovaConta": {
+        "required": [
+          "nome"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contatos": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/NovoContato"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovaEtapa": {
+        "required": [
+          "nome",
+          "probabilidade"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "probabilidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "diasEsperados": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "requisitos": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Requisito"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovaOportunidade": {
+        "required": [
+          "conta",
+          "funil",
+          "titulo"
+        ],
+        "type": "object",
+        "properties": {
+          "conta": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "funil": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "valorEstimado": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "previsaoDeFechamento": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "quemDecide": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovaPosicao": {
+        "required": [
+          "posicao"
+        ],
+        "type": "object",
+        "properties": {
+          "posicao": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovaProposta": {
+        "required": [
+          "oportunidade",
+          "versao"
+        ],
+        "type": "object",
+        "properties": {
+          "oportunidade": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versao": {
+            "$ref": "#/components/schemas/ConteudoDaVersao"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovoContato": {
+        "required": [
+          "nome"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "telefone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cargo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "papel": {
+            "$ref": "#/components/schemas/PapelNaCompra"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovoFunil": {
+        "required": [
+          "nome",
+          "etapas"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "etapas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NovaEtapa"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovoLead": {
+        "required": [
+          "nome",
+          "origem"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "origem": {
+            "$ref": "#/components/schemas/OrigemDoLead"
+          },
+          "empresa": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "telefone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "interesse": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "detalheDaOrigem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovoNome": {
+        "required": [
+          "nome"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovoPrincipal": {
+        "required": [
+          "contato"
+        ],
+        "type": "object",
+        "properties": {
+          "contato": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NovoResponsavel": {
+        "required": [
+          "responsavel"
+        ],
+        "type": "object",
+        "properties": {
+          "responsavel": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OportunidadeDoLead": {
+        "required": [
+          "lead",
+          "funil"
+        ],
+        "type": "object",
+        "properties": {
+          "lead": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "funil": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OportunidadeResposta": {
+        "required": [
+          "id",
+          "conta",
+          "funil",
+          "titulo",
+          "responsavel",
+          "criadaEm",
+          "lead",
+          "situacao",
+          "etapa",
+          "entrouNaEtapaEm",
+          "valorEstimado",
+          "previsaoDeFechamento",
+          "quemDecide",
+          "valorFechado",
+          "perda",
+          "fechadaEm",
+          "passagens"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "conta": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "funil": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "criadaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lead": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaOportunidade"
+          },
+          "etapa": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrouNaEtapaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "valorEstimado": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "previsaoDeFechamento": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "quemDecide": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "valorFechado": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "perda": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PerdaResposta"
+              }
+            ]
+          },
+          "fechadaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "passagens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PassagemResposta"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrigemDoLead": {
+        "enum": [
+          "Site",
+          "Indicacao",
+          "Telefone",
+          "Evento",
+          "RedesSociais",
+          "Outra"
+        ]
+      },
+      "PapelNaCompra": {
+        "enum": [
+          "NaoSabido",
+          "Decisor",
+          "Influenciador",
+          "Financeiro",
+          "Usuario"
+        ]
+      },
+      "PassagemResposta": {
+        "required": [
+          "etapa",
+          "entrouEm",
+          "saiuEm"
+        ],
+        "type": "object",
+        "properties": {
+          "etapa": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrouEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "saiuEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PerdaDaVenda": {
+        "required": [
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "$ref": "#/components/schemas/MotivoDaPerda"
+          },
+          "concorrente": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "PerdaResposta": {
+        "required": [
+          "motivo",
+          "concorrente",
+          "observacao"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "$ref": "#/components/schemas/MotivoDaPerda"
+          },
+          "concorrente": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "PerdasNaEtapaResposta": {
+        "required": [
+          "etapa",
+          "nome",
+          "vendas",
+          "valor"
+        ],
+        "type": "object",
+        "properties": {
+          "etapa": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "vendas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "valor": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PerdasParaConcorrenteResposta": {
+        "required": [
+          "concorrente",
+          "vendas",
+          "valor"
+        ],
+        "type": "object",
+        "properties": {
+          "concorrente": {
+            "type": "string"
+          },
+          "vendas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "valor": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PerdasPorMotivoResposta": {
+        "required": [
+          "motivo",
+          "vendas",
+          "valor"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "$ref": "#/components/schemas/MotivoDaPerda"
+          },
+          "vendas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "valor": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PossivelDuplicadoResposta": {
+        "required": [
+          "conta",
+          "nomeDaConta",
+          "indicios"
+        ],
+        "type": "object",
+        "properties": {
+          "conta": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nomeDaConta": {
+            "type": "string"
+          },
+          "indicios": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IndicioResposta"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PrevisaoResposta": {
+        "required": [
+          "meses",
+          "ganho",
+          "ponderado",
+          "previsto",
+          "vencidas",
+          "semValor",
+          "semPrevisao"
+        ],
+        "type": "object",
+        "properties": {
+          "meses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MesDaPrevisaoResposta"
+            }
+          },
+          "ganho": {
+            "type": "number",
+            "format": "double"
+          },
+          "ponderado": {
+            "type": "number",
+            "format": "double"
+          },
+          "previsto": {
+            "type": "number",
+            "format": "double"
+          },
+          "vencidas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VendaNoRelatorioResposta"
+            }
+          },
+          "semValor": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VendaNoRelatorioResposta"
+            }
+          },
+          "semPrevisao": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VendaNoRelatorioResposta"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PropostaResposta": {
+        "required": [
+          "id",
+          "oportunidade",
+          "conta",
+          "criadaEm",
+          "vigente",
+          "aceita",
+          "vencida",
+          "versoes"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "oportunidade": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "conta": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "criadaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "vigente": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "aceita": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "vencida": {
+            "type": "boolean"
+          },
+          "versoes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersaoResposta"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "QuadroResposta": {
+        "required": [
+          "funil",
+          "nome",
+          "total",
+          "ponderado",
+          "colunas"
+        ],
+        "type": "object",
+        "properties": {
+          "funil": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "ponderado": {
+            "type": "number",
+            "format": "double"
+          },
+          "colunas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ColunaResposta"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "Reagendamento": {
+        "required": [
+          "para"
+        ],
+        "type": "object",
+        "properties": {
+          "para": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Recusa": {
+        "required": [
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Requisito": {
+        "enum": [
+          "ValorEstimado",
+          "PrevisaoDeFechamento",
+          "QuemDecide"
+        ]
+      },
+      "Resposta": {
+        "enum": [
+          "NaoSabido",
+          "Sim",
+          "Nao"
+        ]
+      },
+      "ResumoDaAtividadeResposta": {
+        "required": [
+          "id",
+          "tipo",
+          "assunto",
+          "previstaPara",
+          "responsavel",
+          "situacao",
+          "oportunidade",
+          "versao"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeAtividade"
+          },
+          "assunto": {
+            "type": "string"
+          },
+          "previstaPara": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaAtividade"
+          },
+          "oportunidade": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "versao": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResumoDaOportunidadeResposta": {
+        "required": [
+          "id",
+          "titulo",
+          "conta",
+          "funil",
+          "etapa",
+          "situacao",
+          "responsavel",
+          "valorEstimado",
+          "versao"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "conta": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "funil": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "etapa": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaOportunidade"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "valorEstimado": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "versao": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResumoDaPropostaResposta": {
+        "required": [
+          "id",
+          "versoes",
+          "situacao",
+          "total",
+          "versao"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versoes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaVersao"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "versao": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResumoDoLeadResposta": {
+        "required": [
+          "id",
+          "nome",
+          "empresa",
+          "origem",
+          "situacao",
+          "chegouEm",
+          "versao"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "empresa": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "origem": {
+            "$ref": "#/components/schemas/OrigemDoLead"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDoLead"
+          },
+          "chegouEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "versao": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResumoResposta": {
+        "required": [
+          "id",
+          "nome",
+          "versao",
+          "atualizadoEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "versao": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "atualizadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Semelhanca": {
+        "enum": [
+          "MesmoDocumento",
+          "MesmaEmpresa",
+          "MesmoEmail",
+          "MesmoTelefone",
+          "MesmoNome",
+          "MesmoDominio"
+        ]
+      },
+      "SituacaoDaAtividade": {
+        "enum": [
+          "Pendente",
+          "Concluida",
+          "Cancelada"
+        ]
+      },
+      "SituacaoDaOportunidade": {
+        "enum": [
+          "Aberta",
+          "Ganha",
+          "Perdida"
+        ]
+      },
+      "SituacaoDaVersao": {
+        "enum": [
+          "Rascunho",
+          "Enviada",
+          "Aceita",
+          "Recusada",
+          "Substituida"
+        ]
+      },
+      "SituacaoDoLead": {
+        "enum": [
+          "Novo",
+          "EmQualificacao",
+          "Qualificado",
+          "Descartado",
+          "Convertido"
+        ]
+      },
+      "TempoNaEtapaResposta": {
+        "required": [
+          "etapa",
+          "nome",
+          "vendas",
+          "medianaEmDias"
+        ],
+        "type": "object",
+        "properties": {
+          "etapa": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "vendas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "medianaEmDias": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TipoDeAtividade": {
+        "enum": [
+          "Ligacao",
+          "Email",
+          "Reuniao",
+          "Visita",
+          "Tarefa"
+        ]
+      },
+      "TipoDeEtapa": {
+        "enum": [
+          "Aberta",
+          "Ganha",
+          "Perdida"
+        ]
+      },
+      "VendaNoRelatorioResposta": {
+        "required": [
+          "id",
+          "titulo",
+          "etapa",
+          "responsavel",
+          "valorEstimado",
+          "previsaoDeFechamento"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "etapa": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "valorEstimado": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "previsaoDeFechamento": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VendaSemProximoPassoResposta": {
+        "required": [
+          "id",
+          "titulo",
+          "conta",
+          "nomeDaConta",
+          "etapa",
+          "entrouNaEtapaEm",
+          "versao"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "conta": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nomeDaConta": {
+            "type": "string"
+          },
+          "etapa": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrouNaEtapaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "versao": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VersaoResposta": {
+        "required": [
+          "numero",
+          "situacao",
+          "itens",
+          "subtotal",
+          "desconto",
+          "valorDoDesconto",
+          "total",
+          "validaAte",
+          "condicoesDePagamento",
+          "aprovacao",
+          "enviadaPor",
+          "enviadaEm",
+          "respondidaEm",
+          "motivoDaRecusa"
+        ],
+        "type": "object",
+        "properties": {
+          "numero": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaVersao"
+          },
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemResposta"
+            }
+          },
+          "subtotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "desconto": {
+            "type": "number",
+            "format": "double"
+          },
+          "valorDoDesconto": {
+            "type": "number",
+            "format": "double"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "validaAte": {
+            "type": "string",
+            "format": "date"
+          },
+          "condicoesDePagamento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "aprovacao": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AprovacaoResposta"
+              }
+            ]
+          },
+          "enviadaPor": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ComercialResposta"
+              }
+            ]
+          },
+          "enviadaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "respondidaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "motivoDaRecusa": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Token do provedor de identidade, com as reivindicações construtora, role e preferred_username.",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Contas"
+    },
+    {
+      "name": "Atividades"
+    },
+    {
+      "name": "Oportunidades"
+    },
+    {
+      "name": "Funis"
+    },
+    {
+      "name": "Leads"
+    },
+    {
+      "name": "Propostas"
+    },
+    {
+      "name": "Relatórios"
+    }
+  ]
+}

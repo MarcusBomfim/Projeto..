@@ -11,6 +11,11 @@ indent_size = 4
 [*.{json,yml,yaml,props,csproj,slnx,xml}]
 indent_size = 2
 
+# O front-end segue o costume do ecossistema: dois espaços. O Prettier lê
+# este arquivo, então é aqui que a regra vale para ele também.
+[*.{ts,tsx,js,mjs,css,html}]
+indent_size = 2
+
 
 [*.md]
 trim_trailing_whitespace = false

@@ -1,0 +1,117 @@
+.voltar {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.colunas {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (width < 60rem) {
+  .colunas {
+    grid-template-columns: 1fr;
+  }
+}
+
+.principal {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.bloco {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+
+.bloco h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.bloco table th[scope='row'] {
+  color: var(--texto);
+  font-size: inherit;
+  font-weight: 600;
+}
+
+.vazio {
+  margin: 0;
+  color: var(--texto-suave);
+}
+
+.contatos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contatos li {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+}
+
+.contatos p {
+  margin: 0;
+}
+
+.detalhe {
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+}
+
+.meios {
+  display: grid;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.linha {
+  position: sticky;
+  top: 4.5rem;
+}
+
+.acontecimentos {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0 0 0 1rem;
+  border-left: 2px solid var(--borda-forte);
+  list-style: none;
+}
+
+.acontecimentos li {
+  position: relative;
+}
+
+.acontecimentos li::before {
+  position: absolute;
+  top: 0.45rem;
+  left: -1.4rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 2px solid var(--superficie);
+  border-radius: 50%;
+  background: var(--destaque);
+  content: '';
+}
+
+.acontecimentos time {
+  color: var(--texto-suave);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.acontecimentos p {
+  margin: 0;
+  font-size: 0.9rem;
+}

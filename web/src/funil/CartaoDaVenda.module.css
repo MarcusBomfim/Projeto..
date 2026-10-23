@@ -1,0 +1,61 @@
+.cartao {
+  /* O rótulo do seletor, só para leitor de tela, se posiciona no cartão:
+     sem isso, escaparia da rolagem do quadro e alargaria a página. */
+  position: relative;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.75rem;
+  border: 1px solid var(--borda);
+  border-left: 4px solid var(--destaque);
+  border-radius: 8px;
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+  cursor: grab;
+}
+
+.cartao[aria-busy='true'] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.parada {
+  border-left-color: var(--atencao);
+}
+
+.cabecalho {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.cabecalho h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.conta {
+  font-size: 0.85rem;
+}
+
+.dados {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.dados dt {
+  color: var(--texto-suave);
+}
+
+.dados dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.mover {
+  width: 100%;
+  font-size: 0.8rem;
+}

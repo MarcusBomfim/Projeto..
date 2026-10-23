@@ -1,0 +1,16 @@
+.aviso {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--perigo);
+  border-radius: var(--raio);
+  background: var(--perigo-fundo);
+}
+
+.titulo {
+  margin: 0;
+  color: var(--perigo);
+  font-weight: 600;
+}
+
+.detalhe {
+  margin: 0.25rem 0 0;
+}

@@ -1,0 +1,68 @@
+.resumo {
+  margin: 0 0 1rem;
+  color: var(--texto-suave);
+}
+
+.quadro {
+  display: grid;
+  grid-auto-columns: minmax(15.5rem, 1fr);
+  grid-auto-flow: column;
+  gap: 0.75rem;
+  align-items: start;
+  margin-top: 1rem;
+  padding-bottom: 0.75rem;
+  overflow-x: auto;
+}
+
+.coluna {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 12rem;
+  padding: 0.75rem;
+  border: 2px dashed transparent;
+  border-radius: var(--raio);
+  background: var(--coluna);
+}
+
+.alvo {
+  border-color: var(--destaque);
+  background: var(--destaque-fundo);
+}
+
+.cabecalho h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.numeros {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.numeros span:first-child {
+  font-weight: 700;
+}
+
+.ponderado {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 0.8rem;
+}
+
+.cartoes {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vazia {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+  text-align: center;
+}

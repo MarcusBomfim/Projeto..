@@ -1,0 +1,177 @@
+/*
+ * As cores e medidas da aplicação, num lugar só. Cada componente tem o seu
+ * arquivo .module.css e usa estas variáveis; o tema escuro troca só elas.
+ *
+ * Situação tem cor, mas nunca só cor: o selo diz a situação por escrito —
+ * "Parada", "Ganha", "Atrasada" —, e o gráfico tem a tabela dos números ao
+ * lado.
+ */
+:root {
+  color-scheme: light dark;
+
+  --fundo: #f4f6f8;
+  --superficie: #ffffff;
+  --coluna: #eaeef2;
+  --borda: #e1e5ea;
+  --borda-forte: #c4cbd4;
+  --texto: #18212b;
+  --texto-suave: #586473;
+  --destaque: #1d5fbf;
+  --destaque-fundo: #e6effb;
+
+  --sucesso: #17703f;
+  --sucesso-fundo: #e2f3e9;
+  --atencao: #8a5300;
+  --atencao-fundo: #fcf0d5;
+  --perigo: #b3261e;
+  --perigo-fundo: #fce8e6;
+  --neutro: #586473;
+  --neutro-fundo: #eceff3;
+
+  --ganho: #17703f;
+  --ponderado: #1d5fbf;
+  --em-aberto: #9fb7dc;
+
+  --raio: 10px;
+  --sombra: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 10%);
+  --fonte: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --fonte-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #0e1319;
+    --superficie: #161d25;
+    --coluna: #121920;
+    --borda: #263140;
+    --borda-forte: #3a4757;
+    --texto: #e6ebf1;
+    --texto-suave: #9aa7b6;
+    --destaque: #7fb0ff;
+    --destaque-fundo: #1b2a40;
+
+    --sucesso: #6fd49a;
+    --sucesso-fundo: #15301f;
+    --atencao: #f4c15d;
+    --atencao-fundo: #3a2c0d;
+    --perigo: #ff8a80;
+    --perigo-fundo: #3d1714;
+    --neutro: #9aa7b6;
+    --neutro-fundo: #222b36;
+
+    --ganho: #6fd49a;
+    --ponderado: #7fb0ff;
+    --em-aberto: #35507a;
+
+    --sombra: 0 1px 2px rgb(0 0 0 / 40%);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font: 16px/1.5 var(--fonte);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+}
+
+h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+}
+
+a {
+  color: var(--destaque);
+}
+
+:focus-visible {
+  outline: 2px solid var(--destaque);
+  outline-offset: 2px;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--destaque);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.secundario {
+  border-color: var(--borda-forte);
+  background: transparent;
+  color: var(--texto);
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+select,
+input {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--borda-forte);
+  border-radius: 6px;
+  background: var(--superficie);
+  color: var(--texto);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--borda);
+  text-align: left;
+}
+
+th {
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.numero {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.subtitulo {
+  margin: 0 0 1.5rem;
+  color: var(--texto-suave);
+}
+
+.somente-leitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

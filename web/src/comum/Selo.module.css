@@ -1,0 +1,33 @@
+.selo {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sucesso {
+  background: var(--sucesso-fundo);
+  color: var(--sucesso);
+}
+
+.atencao {
+  background: var(--atencao-fundo);
+  color: var(--atencao);
+}
+
+.perigo {
+  background: var(--perigo-fundo);
+  color: var(--perigo);
+}
+
+.neutro {
+  background: var(--neutro-fundo);
+  color: var(--neutro);
+}
+
+.destaque {
+  background: var(--destaque-fundo);
+  color: var(--destaque);
+}
