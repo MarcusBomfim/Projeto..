@@ -1,0 +1,98 @@
+.figura {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 1.25rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+.chaves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  color: var(--texto-suave);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.chaves span::before {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-right: 0.35rem;
+  border-radius: 2px;
+  vertical-align: -0.1rem;
+  content: '';
+}
+
+.chaveGanho::before {
+  background: var(--ganho);
+}
+
+.chavePonderado::before {
+  background: var(--ponderado);
+}
+
+.chaveTeto::before {
+  border: 2px dashed var(--em-aberto);
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grade {
+  stroke: var(--borda);
+  stroke-width: 1;
+}
+
+.valorDoEixo {
+  fill: var(--texto-suave);
+  font-size: 12px;
+  text-anchor: end;
+  dominant-baseline: middle;
+}
+
+.mes {
+  fill: var(--texto);
+  font-size: 13px;
+  text-anchor: middle;
+}
+
+.teto {
+  fill: none;
+  stroke: var(--em-aberto);
+  stroke-dasharray: 6 4;
+  stroke-width: 2;
+}
+
+.ganho {
+  fill: var(--ganho);
+}
+
+.ponderado {
+  fill: var(--ponderado);
+}
+
+.tabela {
+  font-size: 0.9rem;
+}
+
+.tabela th[scope='row'] {
+  color: var(--texto);
+  font-size: inherit;
+}
