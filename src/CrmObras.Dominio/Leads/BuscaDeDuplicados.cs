@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using CrmObras.Dominio.Clientes;
 using CrmObras.Dominio.Identificacao;
+using CrmObras.Dominio.MeiosDeContato;
 
 namespace CrmObras.Dominio.Leads;
 
@@ -82,6 +83,14 @@ public static class BuscaDeDuplicados
             .ThenBy(duplicado => duplicado.NomeDaConta, StringComparer.Create(CultureInfo.InvariantCulture, ignoreCase: true))];
     }
 
+    /// <summary>Se o e-mail é de um domínio de empresa — e não de um provedor gratuito, que não aproxima ninguém.</summary>
+    public static bool EhDeEmpresa(Email email)
+    {
+        ArgumentNullException.ThrowIfNull(email);
+
+        return !ProvedoresGratuitos.Contains(email.Dominio);
+    }
+
     /// <summary>
     /// O nome como se compara: sem acento, em minúsculas, sem pontuação e sem
     /// as palavras que não distinguem uma empresa. "Construtora Alfa Ltda." e
@@ -142,7 +151,7 @@ public static class BuscaDeDuplicados
             yield return new Indicio(Semelhanca.MesmoEmail, $"o e-mail {email} é de {doEmail.Nome}");
         }
         else if (lead.Email is { } corporativo
-            && !ProvedoresGratuitos.Contains(corporativo.Dominio)
+            && EhDeEmpresa(corporativo)
             && conta.Contatos.FirstOrDefault(contato => contato.Email?.Dominio == corporativo.Dominio) is { } colega)
         {
             yield return new Indicio(Semelhanca.MesmoDominio, $"{colega.Nome} também tem e-mail em {corporativo.Dominio}");

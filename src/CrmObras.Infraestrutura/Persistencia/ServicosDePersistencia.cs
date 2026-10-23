@@ -1,3 +1,4 @@
+using CrmObras.Infraestrutura.Persistencia.Idempotencia;
 using CrmObras.Infraestrutura.Persistencia.Repositorios;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -8,8 +9,8 @@ namespace CrmObras.Infraestrutura.Persistencia;
 public static class ServicosDePersistencia
 {
     /// <summary>
-    /// O contexto e os repositórios, um por requisição; o relógio do sistema,
-    /// se ninguém tiver registrado outro.
+    /// O contexto, os repositórios e as chaves de idempotência, um por
+    /// requisição; o relógio do sistema, se ninguém tiver registrado outro.
     /// </summary>
     /// <typeparam name="TConstrutora">
     /// De onde vem a construtora de cada requisição — na API, do token de quem
@@ -31,6 +32,7 @@ public static class ServicosDePersistencia
         servicos.AddScoped<RepositorioDeOportunidades>();
         servicos.AddScoped<RepositorioDeAtividades>();
         servicos.AddScoped<RepositorioDePropostas>();
+        servicos.AddScoped<ChavesDeIdempotencia>();
 
         return servicos;
     }

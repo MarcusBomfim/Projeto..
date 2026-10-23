@@ -21,9 +21,17 @@ internal sealed class RegistroDeConta : RegistroComNome
     /// <summary>O CNPJ ou o CPF, sem máscara: único na construtora, porque identifica o cliente (ADR-0002).</summary>
     public string? CnpjOuCpf { get; set; }
 
+    /// <summary>O nome como a busca de duplicados o compara; nulo nas contas gravadas antes de a coluna existir, até a próxima gravação.</summary>
+    public string? NomeComparavel { get; set; }
+
     public static RegistroDeConta De(Conta conta, int versao, DateTimeOffset agora)
     {
-        var registro = new RegistroDeConta { Nome = conta.Nome, CnpjOuCpf = conta.Documento?.Numero };
+        var registro = new RegistroDeConta
+        {
+            Nome = conta.Nome,
+            CnpjOuCpf = conta.Documento?.Numero,
+            NomeComparavel = BuscaDeDuplicados.NomeComparavel(conta.Nome),
+        };
         var documento = Json.Escrever(DocumentoDaConta.De(conta), ContextoJson.Default.DocumentoDaConta);
 
         return registro.Preencher<RegistroDeConta>(conta.Id.Valor, versao, DocumentoDaConta.Formato, documento, agora);

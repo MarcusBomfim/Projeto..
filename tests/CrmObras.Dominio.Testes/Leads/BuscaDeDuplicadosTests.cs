@@ -60,6 +60,16 @@ public sealed class BuscaDeDuplicadosTests
         Assert.Equal(conta.Id, duplicado.Conta);
     }
 
+    [Theory]
+    [InlineData("marina@rotasul.com.br", true)]
+    [InlineData("marina@gmail.com", false)]
+    [InlineData("marina@uol.com.br", false)]
+    [InlineData("marina@proton.me", false)]
+    public void Diz_se_o_email_e_de_empresa(string email, bool deEmpresa)
+    {
+        Assert.Equal(deEmpresa, BuscaDeDuplicados.EhDeEmpresa(Email.De(email)));
+    }
+
     [Fact]
     public void Provedor_de_email_gratuito_nao_aproxima_ninguem()
     {

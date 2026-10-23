@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using CrmObras.Infraestrutura.Persistencia.Idempotencia;
 using CrmObras.Infraestrutura.Persistencia.Registros;
 
 namespace CrmObras.Infraestrutura.Persistencia;
@@ -49,6 +50,8 @@ public sealed class ContextoDoBanco(DbContextOptions<ContextoDoBanco> opcoes, IC
 
     internal DbSet<RegistroDeProposta> Propostas => Set<RegistroDeProposta>();
 
+    internal DbSet<RegistroDeIdempotencia> ChavesDeIdempotencia => Set<RegistroDeIdempotencia>();
+
     /// <summary>A construtora em nome de quem este contexto lê e grava; <see langword="null"/> se nenhuma.</summary>
     internal Guid? ConstrutoraId => construtora.Id;
 
@@ -88,6 +91,14 @@ public sealed class ContextoDoBanco(DbContextOptions<ContextoDoBanco> opcoes, IC
         var contas = Agregado<RegistroDeConta>(modelBuilder, "contas");
         ComNome(contas, "contas", 200);
         contas.Property(registro => registro.CnpjOuCpf).HasColumnName("cnpj_ou_cpf").HasMaxLength(14);
+
+        // O nome como a busca de duplicados o compara — sem acento, maiúscula
+        // e "Ltda" —, calculado pelo domínio ao gravar, e indexado: é o que
+        // deixa achar no banco a conta de mesmo nome (ADR-0003).
+        contas.Property(registro => registro.NomeComparavel).HasColumnName("nome_comparavel").HasMaxLength(200);
+        contas
+            .HasIndex(registro => new { registro.ConstrutoraId, registro.NomeComparavel })
+            .HasDatabaseName("ix_contas_construtora_id_nome_comparavel");
         contas
             .HasIndex(registro => new { registro.ConstrutoraId, registro.CnpjOuCpf })
             .IsUnique()
@@ -130,6 +141,28 @@ public sealed class ContextoDoBanco(DbContextOptions<ContextoDoBanco> opcoes, IC
         var propostas = Agregado<RegistroDeProposta>(modelBuilder, "propostas");
         Referencia<RegistroDeProposta, RegistroDeOportunidade>(propostas, "propostas", "oportunidades", nameof(RegistroDeProposta.OportunidadeId), "oportunidade_id");
         Referencia<RegistroDeProposta, RegistroDeConta>(propostas, "propostas", "contas", nameof(RegistroDeProposta.ContaId), "conta_id");
+
+        MapearChavesDeIdempotencia(modelBuilder);
+    }
+
+    /// <summary>A chave de idempotência de cada pedido de criação, com a resposta dada a ele (ADR-0013).</summary>
+    private void MapearChavesDeIdempotencia(ModelBuilder modelBuilder)
+    {
+        var chaves = modelBuilder.Entity<RegistroDeIdempotencia>();
+
+        chaves.ToTable("chaves_de_idempotencia", tabelaBuilder =>
+            tabelaBuilder.HasCheckConstraint("ck_chaves_de_idempotencia_chave", "length(chave) between 1 and 255"));
+
+        chaves.HasKey(registro => new { registro.ConstrutoraId, registro.Chave }).HasName("pk_chaves_de_idempotencia");
+        chaves.Property(registro => registro.ConstrutoraId).HasColumnName("construtora_id");
+        chaves.Property(registro => registro.Chave).HasColumnName("chave").HasMaxLength(Idempotencia.ChavesDeIdempotencia.TamanhoMaximoDaChave);
+        chaves.Property(registro => registro.ImpressaoDoPedido).HasColumnName("impressao_do_pedido");
+        chaves.Property(registro => registro.Status).HasColumnName("status");
+        chaves.Property(registro => registro.Cabecalhos).HasColumnName("cabecalhos").HasColumnType("jsonb");
+        chaves.Property(registro => registro.Corpo).HasColumnName("corpo");
+        chaves.Property(registro => registro.CriadaEm).HasColumnName("criada_em");
+
+        chaves.HasQueryFilter(FiltroDaConstrutora, registro => registro.ConstrutoraId == ConstrutoraId);
     }
 
     /// <summary>As colunas que toda tabela de agregado tem, e o filtro pela construtora.</summary>

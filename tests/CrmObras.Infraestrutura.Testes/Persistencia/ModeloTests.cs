@@ -29,7 +29,7 @@ public sealed class ModeloTests
          */
         using var contexto = new FabricaDoContextoEmTempoDeDesenho().CreateDbContext([]);
 
-        Assert.Equal(6, contexto.Model.GetEntityTypes().Count());
+        Assert.Equal(7, contexto.Model.GetEntityTypes().Count());
         Assert.All(
             contexto.Model.GetEntityTypes(),
             entidade => Assert.True(

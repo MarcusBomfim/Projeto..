@@ -31,6 +31,24 @@ public sealed class ConflitoDeConcorrencia : Exception
     public int? VersaoAtual { get; }
 }
 
+/// <summary>A chave de idempotência já atendeu um pedido diferente deste.</summary>
+public sealed class ChaveDeIdempotenciaReutilizada : Exception
+{
+    public ChaveDeIdempotenciaReutilizada()
+    {
+    }
+
+    public ChaveDeIdempotenciaReutilizada(string message)
+        : base(message)
+    {
+    }
+
+    public ChaveDeIdempotenciaReutilizada(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
+}
+
 /// <summary>Não há agregado gravado com o id pedido — ou ele é de outra construtora, o que dá no mesmo.</summary>
 public sealed class AgregadoNaoEncontrado : Exception
 {

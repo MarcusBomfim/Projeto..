@@ -85,12 +85,18 @@ public sealed class BancoDeTestes : IAsyncLifetime
         }
     }
 
+    /// <summary>Se o banco subiu. Sem Docker fora do CI, não sobe.</summary>
+    public bool Disponivel => _conexaoDaAplicacao is not null;
+
+    /// <summary>Por que o banco não subiu — o motivo de pular os testes que precisam dele.</summary>
+    public string MotivoDaIndisponibilidade => _indisponivel ?? "O banco de testes não subiu.";
+
     /// <summary>A conexão do dono do banco — superusuário, que passa por cima da segurança por linha. Pula o teste se não houver banco.</summary>
     public string Conexao
     {
         get
         {
-            Assert.SkipWhen(_conexao is null, _indisponivel ?? "O banco de testes não subiu.");
+            Assert.SkipWhen(_conexao is null, MotivoDaIndisponibilidade);
 
             return _conexao!;
         }
@@ -101,7 +107,7 @@ public sealed class BancoDeTestes : IAsyncLifetime
     {
         get
         {
-            Assert.SkipWhen(_conexaoDaAplicacao is null, _indisponivel ?? "O banco de testes não subiu.");
+            Assert.SkipWhen(_conexaoDaAplicacao is null, MotivoDaIndisponibilidade);
 
             return _conexaoDaAplicacao!;
         }

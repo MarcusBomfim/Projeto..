@@ -40,13 +40,13 @@ internal sealed class TabelaDeAgregados<TRegistro>(ContextoDoBanco contexto, Tim
         return registro is null ? null : new Versionado<T>(Abrir(registro, leitura), registro.Versao);
     }
 
-    /// <summary>Os agregados que a consulta escolhe, cada um com a versão em que estava.</summary>
+    /// <summary>Os agregados que a consulta escolhe — com LINQ, ou SQL que se compõe —, cada um com a versão em que estava.</summary>
     public async Task<IReadOnlyList<Versionado<T>>> Consultar<T>(
-        Func<IQueryable<TRegistro>, IQueryable<TRegistro>> consulta,
+        Func<DbSet<TRegistro>, IQueryable<TRegistro>> consulta,
         Func<TRegistro, T> leitura,
         CancellationToken cancelamento)
     {
-        var registros = await consulta(Registros.AsNoTracking()).ToListAsync(cancelamento);
+        var registros = await consulta(Registros).AsNoTracking().ToListAsync(cancelamento);
 
         return [.. registros.Select(registro => new Versionado<T>(Abrir(registro, leitura), registro.Versao))];
     }

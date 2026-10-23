@@ -23,6 +23,47 @@ namespace CrmObras.Infraestrutura.Persistencia.Migracoes
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CrmObras.Infraestrutura.Persistencia.Idempotencia.RegistroDeIdempotencia", b =>
+                {
+                    b.Property<Guid>("ConstrutoraId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("construtora_id");
+
+                    b.Property<string>("Chave")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("chave");
+
+                    b.Property<string>("Cabecalhos")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("cabecalhos");
+
+                    b.Property<string>("Corpo")
+                        .HasColumnType("text")
+                        .HasColumnName("corpo");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<string>("ImpressaoDoPedido")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("impressao_do_pedido");
+
+                    b.Property<short?>("Status")
+                        .HasColumnType("smallint")
+                        .HasColumnName("status");
+
+                    b.HasKey("ConstrutoraId", "Chave")
+                        .HasName("pk_chaves_de_idempotencia");
+
+                    b.ToTable("chaves_de_idempotencia", "crm", t =>
+                        {
+                            t.HasCheckConstraint("ck_chaves_de_idempotencia_chave", "length(chave) between 1 and 255");
+                        });
+                });
+
             modelBuilder.Entity("CrmObras.Infraestrutura.Persistencia.Registros.RegistroDeAtividade", b =>
                 {
                     b.Property<Guid>("Id")
@@ -142,6 +183,11 @@ namespace CrmObras.Infraestrutura.Persistencia.Migracoes
                         .HasColumnType("character varying(200)")
                         .HasColumnName("nome");
 
+                    b.Property<string>("NomeComparavel")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome_comparavel");
+
                     b.Property<int>("Versao")
                         .IsConcurrencyToken()
                         .HasColumnType("integer")
@@ -160,6 +206,9 @@ namespace CrmObras.Infraestrutura.Persistencia.Migracoes
 
                     b.HasIndex("ConstrutoraId", "Nome")
                         .HasDatabaseName("ix_contas_construtora_id_nome");
+
+                    b.HasIndex("ConstrutoraId", "NomeComparavel")
+                        .HasDatabaseName("ix_contas_construtora_id_nome_comparavel");
 
                     b.ToTable("contas", "crm", t =>
                         {
