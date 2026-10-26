@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="OpenTelemetry.Exporter.InMemory" />
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="xunit.v3.mtp-v2" />
   </ItemGroup>
@@ -18,7 +19,8 @@
   </ItemGroup>
   <!--
     O mesmo banco dos testes da infraestrutura: PostgreSQL num contêiner,
-    migrado, com o papel da aplicação. Aqui ele vive dentro do fixture da API.
+    migrado, com os papéis da aplicação e do processador. Aqui ele vive
+    dentro do fixture da API.
   -->
   <ItemGroup>
     <Compile Include="..\CrmObras.Infraestrutura.Testes\Persistencia\BancoDeTestes.cs" Link="Banco\BancoDeTestes.cs" />

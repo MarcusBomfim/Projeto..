@@ -93,6 +93,12 @@ public sealed class ApiDeTestes : IAsyncLifetime
     public void AcertarRelogio(Guid construtora, DateTimeOffset agora) =>
         Servicos.GetRequiredService<RelogioDosTestes>().Acertar(construtora, agora);
 
+    /// <summary>
+    /// A API com algo a mais — outra configuração, outro serviço —, num host
+    /// só dela e contra o mesmo banco. Quem pede, descarta.
+    /// </summary>
+    public WebApplicationFactory<Program> Variante(Action<IWebHostBuilder> ajuste) => Api.WithWebHostBuilder(ajuste);
+
     /// <summary>A API configurada para os testes: o banco do contêiner, os tokens emitidos aqui e o relógio de cada construtora.</summary>
     private sealed class Fabrica(string conexao) : WebApplicationFactory<Program>
     {

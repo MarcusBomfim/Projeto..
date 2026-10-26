@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    O que todo serviço do sistema tem para ser observado e operado, igual na
+    API e no processador: rastros, métricas e logs pelo OpenTelemetry, e as
+    verificações de saúde que o orquestrador consulta (ADR-0018).
+  -->
+  <PropertyGroup>
+    <RootNamespace>CrmObras.Observabilidade</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.OpenTelemetry" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+  </ItemGroup>
+</Project>

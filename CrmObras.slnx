@@ -3,11 +3,15 @@
     <Project Path="src/CrmObras.Api/CrmObras.Api.csproj" />
     <Project Path="src/CrmObras.Dominio/CrmObras.Dominio.csproj" />
     <Project Path="src/CrmObras.Infraestrutura/CrmObras.Infraestrutura.csproj" />
+    <Project Path="src/CrmObras.Observabilidade/CrmObras.Observabilidade.csproj" />
+    <Project Path="src/CrmObras.Processador/CrmObras.Processador.csproj" />
+    <Project Path="src/CrmObras.Processamento/CrmObras.Processamento.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CrmObras.Api.Testes/CrmObras.Api.Testes.csproj" />
     <Project Path="tests/CrmObras.Arquitetura.Testes/CrmObras.Arquitetura.Testes.csproj" />
     <Project Path="tests/CrmObras.Dominio.Testes/CrmObras.Dominio.Testes.csproj" />
     <Project Path="tests/CrmObras.Infraestrutura.Testes/CrmObras.Infraestrutura.Testes.csproj" />
+    <Project Path="tests/CrmObras.Processamento.Testes/CrmObras.Processamento.Testes.csproj" />
   </Folder>
 </Solution>

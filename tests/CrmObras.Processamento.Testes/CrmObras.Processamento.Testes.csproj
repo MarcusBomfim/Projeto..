@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <RootNamespace>CrmObras.Processamento.Testes</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Exporter.InMemory" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="xunit.v3.mtp-v2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CrmObras.Processamento\CrmObras.Processamento.csproj" />
+    <!-- O host do processador, para perguntar pela saúde dele como o orquestrador pergunta. -->
+    <ProjectReference Include="..\..\src\CrmObras.Processador\CrmObras.Processador.csproj" />
+  </ItemGroup>
+  <!--
+    O mesmo banco dos testes da infraestrutura, com o papel do processador, a
+    caixa de saída vista pelo dono do banco, e a venda dos testes do domínio.
+  -->
+  <ItemGroup>
+    <Compile Include="..\CrmObras.Infraestrutura.Testes\Persistencia\BancoDeTestes.cs" Link="Banco\BancoDeTestes.cs" />
+    <Compile Include="..\CrmObras.Infraestrutura.Testes\Persistencia\CaixaNoBanco.cs" Link="Banco\CaixaNoBanco.cs" />
+    <Compile Include="..\CrmObras.Dominio.Testes\Oportunidades\VendasDeTeste.cs" Link="Exemplos\VendasDeTeste.cs" />
+    <!-- Onde o exportador em memória põe os rastros, com trava: o mesmo dos testes da API. -->
+    <Compile Include="..\CrmObras.Api.Testes\RastrosExportados.cs" Link="Apoio\RastrosExportados.cs" />
+  </ItemGroup>
+</Project>

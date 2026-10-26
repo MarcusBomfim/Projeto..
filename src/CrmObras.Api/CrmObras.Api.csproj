@@ -15,6 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CrmObras.Infraestrutura\CrmObras.Infraestrutura.csproj" />
+    <ProjectReference Include="..\CrmObras.Observabilidade\CrmObras.Observabilidade.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="CrmObras.Api.Testes" />

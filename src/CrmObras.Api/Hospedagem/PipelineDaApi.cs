@@ -1,5 +1,6 @@
 using CrmObras.Api.Http;
 using CrmObras.Api.Recursos;
+using CrmObras.Observabilidade;
 
 namespace CrmObras.Api.Hospedagem;
 
@@ -19,6 +20,7 @@ internal static class PipelineDaApi
         app.Use(Idempotencia.GuardarCorpo);
 
         app.MapOpenApi().AllowAnonymous();
+        app.MapearSaude();
         MapaDosRecursos.MapearTodos(app.MapGroup("/api"));
 
         return app;

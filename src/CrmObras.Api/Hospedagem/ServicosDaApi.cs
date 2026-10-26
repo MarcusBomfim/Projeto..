@@ -4,16 +4,20 @@ using CrmObras.Api.Recursos;
 using CrmObras.Api.Seguranca;
 using CrmObras.Dominio.Propostas;
 using CrmObras.Infraestrutura.Persistencia;
+using CrmObras.Observabilidade;
 
 namespace CrmObras.Api.Hospedagem;
 
-/// <summary>Os serviços da API: persistência, segurança, erros, JSON, documentação, as alçadas de desconto e o fuso da construtora.</summary>
+/// <summary>Os serviços da API: observabilidade, persistência, segurança, erros, JSON, documentação, as alçadas de desconto e o fuso da construtora.</summary>
 internal static class ServicosDaApi
 {
     public static WebApplicationBuilder AdicionarApi(this WebApplicationBuilder builder)
     {
         var conexao = builder.Configuration.GetConnectionString("Crm")
             ?? throw new InvalidOperationException("Falta a cadeia de conexão ConnectionStrings:Crm.");
+
+        builder.AdicionarObservabilidade("crm-obras-api");
+        builder.Services.AddHealthChecks().VerificarBanco(conexao);
 
         builder.Services.AddHttpContextAccessor();
         builder.Services.AdicionarPersistencia<ConstrutoraDoUsuario>(conexao);

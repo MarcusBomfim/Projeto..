@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    O processamento em segundo plano: a fila da caixa de saída, os tratadores
+    das mensagens — o que leva a venda ganha ao planejamento-obras — e as
+    rotinas de manutenção. Sem host próprio: quem roda é o CrmObras.Processador.
+  -->
+  <PropertyGroup>
+    <RootNamespace>CrmObras.Processamento</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <!-- O token de serviço com que o processador se apresenta ao planejamento (ADR-0017). -->
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <!-- Só para olhar a fila sem rastro: a volta vazia não conta história nenhuma (ADR-0018). -->
+    <PackageReference Include="OpenTelemetry" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CrmObras.Infraestrutura\CrmObras.Infraestrutura.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="CrmObras.Processamento.Testes" />
+  </ItemGroup>
+</Project>

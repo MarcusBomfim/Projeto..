@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!--
+    O processo que roda o processamento em segundo plano, separado da API:
+    escala sozinho, cai sozinho, e a API continua atendendo enquanto ele
+    reinicia — e enquanto o planejamento-obras está fora do ar. Dois ou mais
+    no ar dividem a fila sem tratar nada duas vezes. Responde HTTP só para
+    dizer se está vivo e pronto (ADR-0018).
+  -->
+  <PropertyGroup>
+    <RootNamespace>CrmObras.Processador</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CrmObras.Observabilidade\CrmObras.Observabilidade.csproj" />
+    <ProjectReference Include="..\CrmObras.Processamento\CrmObras.Processamento.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Os testes sobem o host como ele é, para perguntar pela saúde dele. -->
+    <InternalsVisibleTo Include="CrmObras.Processamento.Testes" />
+  </ItemGroup>
+</Project>
