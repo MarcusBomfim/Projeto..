@@ -17,11 +17,13 @@ namespace CrmObras.Dominio.Oportunidades;
 /// cada etapa, e a venda parada.
 /// </para>
 /// <para>
-/// Ganha, a venda está fechada e não muda mais: virou obra. Perdida, guarda o
-/// motivo, e pode ser reaberta numa etapa aberta — o cliente que voltou atrás.
+/// Ganha, a venda está fechada e não muda mais: virou obra — e registra o
+/// fato <see cref="VendaGanha"/>, para a obra seguir para o planejamento
+/// (ADR-0016). Perdida, guarda o motivo, e pode ser reaberta numa etapa
+/// aberta — o cliente que voltou atrás.
 /// </para>
 /// </remarks>
-public sealed class Oportunidade
+public sealed class Oportunidade : AgregadoComEventos
 {
     private const int MaiorTitulo = 200;
 
@@ -205,6 +207,8 @@ public sealed class Oportunidade
         ValorFechado = valorFechado;
         FechadaEm = em;
         Entrar(funil.Ganha.Id, em);
+
+        Registrar(new VendaGanha(Id, Conta, Titulo, valorFechado, em));
     }
 
     /// <summary>Dá a venda por perdida, com o motivo.</summary>

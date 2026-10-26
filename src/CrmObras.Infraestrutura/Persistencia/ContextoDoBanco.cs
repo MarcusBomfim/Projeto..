@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using CrmObras.Infraestrutura.Persistencia.CaixaDeSaida;
 using CrmObras.Infraestrutura.Persistencia.Idempotencia;
 using CrmObras.Infraestrutura.Persistencia.Registros;
 
@@ -51,6 +52,8 @@ public sealed class ContextoDoBanco(DbContextOptions<ContextoDoBanco> opcoes, IC
     internal DbSet<RegistroDeProposta> Propostas => Set<RegistroDeProposta>();
 
     internal DbSet<RegistroDeIdempotencia> ChavesDeIdempotencia => Set<RegistroDeIdempotencia>();
+
+    internal DbSet<RegistroDeMensagem> CaixaDeSaida => Set<RegistroDeMensagem>();
 
     /// <summary>A construtora em nome de quem este contexto lê e grava; <see langword="null"/> se nenhuma.</summary>
     internal Guid? ConstrutoraId => construtora.Id;
@@ -143,6 +146,49 @@ public sealed class ContextoDoBanco(DbContextOptions<ContextoDoBanco> opcoes, IC
         Referencia<RegistroDeProposta, RegistroDeConta>(propostas, "propostas", "contas", nameof(RegistroDeProposta.ContaId), "conta_id");
 
         MapearChavesDeIdempotencia(modelBuilder);
+        MapearCaixaDeSaida(modelBuilder);
+    }
+
+    /// <summary>A caixa de saída dos fatos do domínio, gravados com o agregado e tratados em segundo plano (ADR-0016).</summary>
+    private void MapearCaixaDeSaida(ModelBuilder modelBuilder)
+    {
+        var mensagens = modelBuilder.Entity<RegistroDeMensagem>();
+
+        mensagens.ToTable("caixa_de_saida", tabelaBuilder =>
+        {
+            tabelaBuilder.HasCheckConstraint("ck_caixa_de_saida_formato", "formato >= 1");
+            tabelaBuilder.HasCheckConstraint("ck_caixa_de_saida_tentativas", "tentativas >= 0");
+            tabelaBuilder.HasCheckConstraint("ck_caixa_de_saida_conteudo", "jsonb_typeof(conteudo) = 'object'");
+        });
+
+        mensagens.HasKey(registro => registro.Id).HasName("pk_caixa_de_saida");
+        mensagens.Property(registro => registro.Id).HasColumnName("id").ValueGeneratedNever();
+        mensagens.Property(registro => registro.Sequencia).HasColumnName("sequencia").UseIdentityAlwaysColumn();
+        mensagens.Property(registro => registro.ConstrutoraId).HasColumnName("construtora_id");
+        mensagens.Property(registro => registro.Tipo).HasColumnName("tipo").HasMaxLength(100);
+        mensagens.Property(registro => registro.Formato).HasColumnName("formato");
+        mensagens.Property(registro => registro.Conteudo).HasColumnName("conteudo").HasColumnType("jsonb");
+        mensagens.Property(registro => registro.AgregadoId).HasColumnName("agregado_id");
+        mensagens.Property(registro => registro.VersaoDoAgregado).HasColumnName("versao_do_agregado");
+        mensagens.Property(registro => registro.OcorridaEm).HasColumnName("ocorrida_em");
+        mensagens.Property(registro => registro.Tentativas).HasColumnName("tentativas");
+        mensagens.Property(registro => registro.ProximaTentativaEm).HasColumnName("proxima_tentativa_em");
+        mensagens.Property(registro => registro.TratadaEm).HasColumnName("tratada_em");
+        mensagens.Property(registro => registro.AbandonadaEm).HasColumnName("abandonada_em");
+        mensagens.Property(registro => registro.UltimoErro).HasColumnName("ultimo_erro");
+        mensagens.Property(registro => registro.ContextoDoRastreio).HasColumnName("contexto_do_rastreio").HasMaxLength(256);
+
+        // A fila só olha o que está pendente: o índice só tem isso.
+        mensagens
+            .HasIndex(registro => new { registro.ProximaTentativaEm, registro.Sequencia })
+            .HasDatabaseName("ix_caixa_de_saida_pendentes")
+            .HasFilter("tratada_em is null and abandonada_em is null");
+        mensagens
+            .HasIndex(registro => registro.TratadaEm)
+            .HasDatabaseName("ix_caixa_de_saida_tratada_em")
+            .HasFilter("tratada_em is not null");
+
+        mensagens.HasQueryFilter(FiltroDaConstrutora, registro => registro.ConstrutoraId == ConstrutoraId);
     }
 
     /// <summary>A chave de idempotência de cada pedido de criação, com a resposta dada a ele (ADR-0013).</summary>

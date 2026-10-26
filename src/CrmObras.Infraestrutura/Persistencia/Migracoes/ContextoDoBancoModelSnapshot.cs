@@ -23,6 +23,96 @@ namespace CrmObras.Infraestrutura.Persistencia.Migracoes
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CrmObras.Infraestrutura.Persistencia.CaixaDeSaida.RegistroDeMensagem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AbandonadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("abandonada_em");
+
+                    b.Property<Guid>("AgregadoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("agregado_id");
+
+                    b.Property<Guid>("ConstrutoraId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("construtora_id");
+
+                    b.Property<string>("Conteudo")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("conteudo");
+
+                    b.Property<string>("ContextoDoRastreio")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("contexto_do_rastreio");
+
+                    b.Property<short>("Formato")
+                        .HasColumnType("smallint")
+                        .HasColumnName("formato");
+
+                    b.Property<DateTimeOffset>("OcorridaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ocorrida_em");
+
+                    b.Property<DateTimeOffset>("ProximaTentativaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("proxima_tentativa_em");
+
+                    b.Property<long>("Sequencia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequencia");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Sequencia"));
+
+                    b.Property<int>("Tentativas")
+                        .HasColumnType("integer")
+                        .HasColumnName("tentativas");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("tipo");
+
+                    b.Property<DateTimeOffset?>("TratadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("tratada_em");
+
+                    b.Property<string>("UltimoErro")
+                        .HasColumnType("text")
+                        .HasColumnName("ultimo_erro");
+
+                    b.Property<int>("VersaoDoAgregado")
+                        .HasColumnType("integer")
+                        .HasColumnName("versao_do_agregado");
+
+                    b.HasKey("Id")
+                        .HasName("pk_caixa_de_saida");
+
+                    b.HasIndex("TratadaEm")
+                        .HasDatabaseName("ix_caixa_de_saida_tratada_em")
+                        .HasFilter("tratada_em is not null");
+
+                    b.HasIndex("ProximaTentativaEm", "Sequencia")
+                        .HasDatabaseName("ix_caixa_de_saida_pendentes")
+                        .HasFilter("tratada_em is null and abandonada_em is null");
+
+                    b.ToTable("caixa_de_saida", "crm", t =>
+                        {
+                            t.HasCheckConstraint("ck_caixa_de_saida_conteudo", "jsonb_typeof(conteudo) = 'object'");
+
+                            t.HasCheckConstraint("ck_caixa_de_saida_formato", "formato >= 1");
+
+                            t.HasCheckConstraint("ck_caixa_de_saida_tentativas", "tentativas >= 0");
+                        });
+                });
+
             modelBuilder.Entity("CrmObras.Infraestrutura.Persistencia.Idempotencia.RegistroDeIdempotencia", b =>
                 {
                     b.Property<Guid>("ConstrutoraId")

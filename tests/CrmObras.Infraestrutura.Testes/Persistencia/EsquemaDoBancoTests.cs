@@ -17,13 +17,13 @@ public sealed class EsquemaDoBancoTests(BancoDeTestes banco)
     private readonly Guid _construtora = Guid.CreateVersion7();
 
     [Fact]
-    public async Task As_migracoes_criam_uma_tabela_por_agregado_e_a_das_chaves_de_idempotencia()
+    public async Task As_migracoes_criam_uma_tabela_por_agregado_a_das_chaves_de_idempotencia_e_a_caixa_de_saida()
     {
         var tabelas = await Consultar(
             "select table_name from information_schema.tables where table_schema = 'crm' order by table_name",
             leitor => leitor.GetString(0));
 
-        Assert.Equal(["atividades", "chaves_de_idempotencia", "contas", "funis", "historico_de_migracoes", "leads", "oportunidades", "propostas"], tabelas);
+        Assert.Equal(["atividades", "caixa_de_saida", "chaves_de_idempotencia", "contas", "funis", "historico_de_migracoes", "leads", "oportunidades", "propostas"], tabelas);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class EsquemaDoBancoTests(BancoDeTestes banco)
             """,
             leitor => (Tabela: leitor.GetString(0), Ativada: leitor.GetBoolean(1), Forcada: leitor.GetBoolean(2), TemPolitica: leitor.GetBoolean(3)));
 
-        Assert.Equal(7, tabelas.Count);
+        Assert.Equal(8, tabelas.Count);
         Assert.All(tabelas, tabela => Assert.True(tabela.Ativada && tabela.Forcada && tabela.TemPolitica, $"{tabela.Tabela} sem segurança por linha."));
     }
 

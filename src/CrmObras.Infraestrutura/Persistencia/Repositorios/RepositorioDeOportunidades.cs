@@ -10,6 +10,10 @@ namespace CrmObras.Infraestrutura.Persistencia.Repositorios;
 /// o funil são outros agregados: a oportunidade guarda o id deles, e o banco
 /// confere que existem.
 /// </summary>
+/// <remarks>
+/// Os fatos da venda — a venda ganha — vão para a caixa de saída na mesma
+/// transação da gravação, e saem do agregado depois dela (ADR-0016).
+/// </remarks>
 public sealed class RepositorioDeOportunidades(ContextoDoBanco contexto, TimeProvider relogio)
 {
     private readonly TabelaDeAgregados<RegistroDeOportunidade> _tabela = new(contexto, relogio, "a oportunidade");
@@ -45,23 +49,31 @@ public sealed class RepositorioDeOportunidades(ContextoDoBanco contexto, TimePro
 
     /// <remarks>A conta e o funil precisam estar gravados antes.</remarks>
     /// <returns>A versão gravada: 1.</returns>
-    public Task<int> Adicionar(Oportunidade oportunidade, CancellationToken cancelamento = default)
+    public async Task<int> Adicionar(Oportunidade oportunidade, CancellationToken cancelamento = default)
     {
         ArgumentNullException.ThrowIfNull(oportunidade);
 
-        return _tabela.Inserir(RegistroDeOportunidade.De(oportunidade, versao: 1, _tabela.Agora), Referencias(oportunidade), cancelamento);
+        var versao = await _tabela.Inserir(
+            RegistroDeOportunidade.De(oportunidade, versao: 1, _tabela.Agora),
+            Referencias(oportunidade),
+            cancelamento,
+            oportunidade.Eventos);
+
+        oportunidade.DescartarEventos();
+
+        return versao;
     }
 
     /// <param name="versaoLida">A versão em que a oportunidade foi lida.</param>
     /// <returns>A versão nova.</returns>
-    public Task<int> Atualizar(Oportunidade oportunidade, int versaoLida, CancellationToken cancelamento = default)
+    public async Task<int> Atualizar(Oportunidade oportunidade, int versaoLida, CancellationToken cancelamento = default)
     {
         ArgumentNullException.ThrowIfNull(oportunidade);
 
         // A conta e o funil de uma venda não mudam; o título, o vendedor e a situação, sim.
         var nova = RegistroDeOportunidade.De(oportunidade, versaoLida + 1, _tabela.Agora);
 
-        return _tabela.Atualizar(
+        var versao = await _tabela.Atualizar(
             nova,
             versaoLida,
             colunas => colunas
@@ -69,7 +81,12 @@ public sealed class RepositorioDeOportunidades(ContextoDoBanco contexto, TimePro
                 .SetProperty(registro => registro.Responsavel, nova.Responsavel)
                 .SetProperty(registro => registro.Situacao, nova.Situacao),
             Referencias(oportunidade),
-            cancelamento);
+            cancelamento,
+            oportunidade.Eventos);
+
+        oportunidade.DescartarEventos();
+
+        return versao;
     }
 
     public Task Remover(OportunidadeId id, int versaoLida, CancellationToken cancelamento = default)

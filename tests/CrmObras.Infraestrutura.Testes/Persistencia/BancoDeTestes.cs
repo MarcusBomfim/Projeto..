@@ -19,9 +19,11 @@ namespace CrmObras.Infraestrutura.Testes.Persistencia;
 /// de erro que ele devolve (ADR-0011).
 /// </para>
 /// <para>
-/// Duas conexões. A do dono do banco, superusuário, aplica as migrações e
+/// Três conexões. A do dono do banco, superusuário, aplica as migrações e
 /// serve aos testes que examinam o banco por dentro. A da aplicação usa um
 /// papel comum, como em produção: é ela que a segurança por linha alcança.
+/// A do processador é outro papel comum, que além disso executa as funções
+/// que atravessam construtoras — a reserva da fila e as limpezas (ADR-0016).
 /// </para>
 /// <para>
 /// Sem Docker na máquina de quem desenvolve, os testes que precisam do banco
@@ -40,11 +42,18 @@ public sealed class BancoDeTestes : IAsyncLifetime
 
     private const string SenhaDaAplicacao = "aplicacao-nos-testes";
 
+    /// <summary>O papel do processador: o da aplicação, e mais as funções que atravessam construtoras.</summary>
+    public const string PapelDoProcessador = "crm_processador";
+
+    private const string SenhaDoProcessador = "processador-nos-testes";
+
     private PostgreSqlContainer? _conteiner;
 
     private string? _conexao;
 
     private string? _conexaoDaAplicacao;
+
+    private string? _conexaoDoProcessador;
 
     private string? _indisponivel;
 
@@ -72,9 +81,10 @@ public sealed class BancoDeTestes : IAsyncLifetime
             await contexto.Database.MigrateAsync();
         }
 
-        await CriarPapelDaAplicacao(_conexao);
+        await CriarPapeis(_conexao);
 
         _conexaoDaAplicacao = new NpgsqlConnectionStringBuilder(_conexao) { Username = PapelDaAplicacao, Password = SenhaDaAplicacao }.ConnectionString;
+        _conexaoDoProcessador = new NpgsqlConnectionStringBuilder(_conexao) { Username = PapelDoProcessador, Password = SenhaDoProcessador }.ConnectionString;
     }
 
     public async ValueTask DisposeAsync()
@@ -113,22 +123,39 @@ public sealed class BancoDeTestes : IAsyncLifetime
         }
     }
 
+    /// <summary>A conexão do processador: a segurança por linha o alcança, mas ele reserva a fila e limpa o banco.</summary>
+    public string ConexaoDoProcessador
+    {
+        get
+        {
+            Assert.SkipWhen(_conexaoDoProcessador is null, MotivoDaIndisponibilidade);
+
+            return _conexaoDoProcessador!;
+        }
+    }
+
     /// <summary>Um contexto novo em nome da construtora, como cada requisição da aplicação terá o seu.</summary>
     public ContextoDoBanco NovoContexto(Guid construtora) => ContextoDoBanco.Criar(ConexaoDaAplicacao, new ConstrutoraFixa(construtora));
 
     /// <summary>Um contexto em nome de nenhuma construtora: não lê nem grava agregado.</summary>
     public ContextoDoBanco NovoContextoSemConstrutora() => ContextoDoBanco.Criar(ConexaoDaAplicacao, ConstrutoraFixa.Nenhuma);
 
-    /// <summary>O papel como quem implanta o criaria: lê e grava as tabelas do esquema, e nada mais.</summary>
-    private static async Task CriarPapelDaAplicacao(string conexaoDoDono)
+    /// <summary>
+    /// Os papéis como quem implanta os criaria: os dois leem e gravam as
+    /// tabelas do esquema; só o processador executa as funções que atravessam
+    /// construtoras.
+    /// </summary>
+    private static async Task CriarPapeis(string conexaoDoDono)
     {
         await using var conexao = new NpgsqlConnection(conexaoDoDono);
         await conexao.OpenAsync();
         await using var comando = new NpgsqlCommand(
             $"""
             create role {PapelDaAplicacao} login password '{SenhaDaAplicacao}';
-            grant usage on schema crm to {PapelDaAplicacao};
-            grant select, insert, update, delete on all tables in schema crm to {PapelDaAplicacao};
+            create role {PapelDoProcessador} login password '{SenhaDoProcessador}';
+            grant usage on schema crm to {PapelDaAplicacao}, {PapelDoProcessador};
+            grant select, insert, update, delete on all tables in schema crm to {PapelDaAplicacao}, {PapelDoProcessador};
+            grant execute on all functions in schema crm to {PapelDoProcessador};
             """,
             conexao);
         await comando.ExecuteNonQueryAsync();

@@ -1,8 +1,11 @@
+using System.Diagnostics;
 using System.Text.Json;
 using CrmObras.Dominio.Comum;
+using CrmObras.Infraestrutura.Persistencia.CaixaDeSaida;
 using CrmObras.Infraestrutura.Persistencia.Registros;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 
 namespace CrmObras.Infraestrutura.Persistencia;
@@ -52,9 +55,18 @@ internal sealed class TabelaDeAgregados<TRegistro>(ContextoDoBanco contexto, Tim
     }
 
     /// <param name="restricoes">O que dizer quando uma restrição do banco recusa a gravação, pelo nome da restrição.</param>
-    public async Task<int> Inserir(TRegistro registro, IReadOnlyDictionary<string, string> restricoes, CancellationToken cancelamento)
+    /// <param name="eventos">Os fatos do agregado desde a última gravação, para a caixa de saída (ADR-0016).</param>
+    public async Task<int> Inserir(
+        TRegistro registro,
+        IReadOnlyDictionary<string, string> restricoes,
+        CancellationToken cancelamento,
+        IReadOnlyList<EventoDeDominio>? eventos = null)
     {
         registro.ConstrutoraId = contexto.ConstrutoraQueGrava;
+        var mensagens = Mensagens(eventos, registro.Versao);
+
+        await using var transacao = await TransacaoParaAsMensagens(mensagens, cancelamento);
+
         Registros.Add(registro);
 
         try
@@ -78,18 +90,31 @@ internal sealed class TabelaDeAgregados<TRegistro>(ContextoDoBanco contexto, Tim
             contexto.ChangeTracker.Clear();
         }
 
+        await GravarNaCaixa(mensagens, cancelamento);
+
+        if (transacao is not null)
+        {
+            await transacao.CommitAsync(cancelamento);
+        }
+
         return registro.Versao;
     }
 
     /// <param name="outrasColunas">As colunas próprias da tabela, além das que toda tabela de agregado tem.</param>
     /// <param name="restricoes">O que dizer quando uma restrição do banco recusa a gravação, pelo nome da restrição.</param>
+    /// <param name="eventos">Os fatos do agregado desde a última gravação, para a caixa de saída (ADR-0016).</param>
     public async Task<int> Atualizar(
         TRegistro novo,
         int versaoLida,
         Action<UpdateSettersBuilder<TRegistro>>? outrasColunas,
         IReadOnlyDictionary<string, string> restricoes,
-        CancellationToken cancelamento)
+        CancellationToken cancelamento,
+        IReadOnlyList<EventoDeDominio>? eventos = null)
     {
+        var mensagens = Mensagens(eventos, novo.Versao);
+
+        await using var transacao = await TransacaoParaAsMensagens(mensagens, cancelamento);
+
         int alteradas;
 
         try
@@ -119,6 +144,13 @@ internal sealed class TabelaDeAgregados<TRegistro>(ContextoDoBanco contexto, Tim
             await AcusarConflitoOuAusencia(novo.Id, versaoLida, cancelamento);
         }
 
+        await GravarNaCaixa(mensagens, cancelamento);
+
+        if (transacao is not null)
+        {
+            await transacao.CommitAsync(cancelamento);
+        }
+
         return novo.Versao;
     }
 
@@ -141,6 +173,53 @@ internal sealed class TabelaDeAgregados<TRegistro>(ContextoDoBanco contexto, Tim
         if (apagadas == 0)
         {
             await AcusarConflitoOuAusencia(id, versaoLida, cancelamento);
+        }
+    }
+
+    private List<RegistroDeMensagem> Mensagens(IReadOnlyList<EventoDeDominio>? eventos, int versaoDoAgregado) =>
+        [.. (eventos ?? []).Select(evento => RegistroDeMensagem.De(evento, contexto.ConstrutoraQueGrava, versaoDoAgregado, Agora))];
+
+    /// <summary>
+    /// O agregado e as mensagens dele numa transação só: ou ficam os dois, ou
+    /// nenhum — num conflito de versão, nem um nem outro. Sem mensagem, ou
+    /// dentro da transação de quem chamou, não precisa abrir outra.
+    /// </summary>
+    private async Task<IDbContextTransaction?> TransacaoParaAsMensagens(List<RegistroDeMensagem> mensagens, CancellationToken cancelamento) =>
+        mensagens.Count > 0 && contexto.Database.CurrentTransaction is null
+            ? await contexto.Database.BeginTransactionAsync(cancelamento)
+            : null;
+
+    /// <summary>
+    /// As mensagens entram uma a uma, na ordem dos fatos: a sequência da caixa
+    /// é a ordem em que eles aconteceram. Todas num SaveChanges só, não — o
+    /// Entity Framework ordena as inserções pela chave, e a chave de duas
+    /// mensagens do mesmo milissegundo sai em ordem qualquer.
+    /// </summary>
+    /// <remarks>
+    /// Cada publicação é um passo no rastro de quem gravou — o pedido HTTP, na
+    /// API —, e a mensagem leva o contexto dela: o tratamento, em outro
+    /// processo e talvez minutos depois, continua o mesmo rastro.
+    /// </remarks>
+    private async Task GravarNaCaixa(List<RegistroDeMensagem> mensagens, CancellationToken cancelamento)
+    {
+        try
+        {
+            foreach (var mensagem in mensagens)
+            {
+                using var publicacao = TelemetriaDaCaixaDeSaida.Fonte.StartActivity(
+                    $"publicar {mensagem.Tipo}",
+                    ActivityKind.Producer,
+                    parentContext: default,
+                    tags: TelemetriaDaCaixaDeSaida.Atributos(mensagem.Id, mensagem.Tipo, mensagem.ConstrutoraId, "send"));
+
+                mensagem.ContextoDoRastreio = (publicacao ?? Activity.Current)?.Id;
+                contexto.CaixaDeSaida.Add(mensagem);
+                await contexto.SaveChangesAsync(cancelamento);
+            }
+        }
+        finally
+        {
+            contexto.ChangeTracker.Clear();
         }
     }
 
