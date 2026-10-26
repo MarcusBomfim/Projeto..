@@ -1,0 +1,189 @@
+# A pilha inteira em contêineres, como vai para produção (ADR-0019): o CRM —
+# o PostgreSQL com os papéis de produção, a migração, a API, o processador e o
+# front-end —, o planejamento-obras, onde a venda ganha vira obra, e o painel
+# do OpenTelemetry, que recebe os dois.
+#
+#   docker compose up --build
+#
+# O CRM fica em http://localhost:5290 e a API dele em http://localhost:5291.
+# O planejamento fica em http://localhost:5280 e a API dele em
+# http://localhost:5281. O painel dos rastros, métricas e logs dos dois
+# sistemas fica em http://localhost:18888.
+#
+# As senhas e chaves têm valor padrão para rodar na máquina de quem
+# desenvolve; em qualquer outro lugar, vêm do ambiente. As imagens do CRM, por
+# padrão, são as compiladas aqui; REGISTRO e VERSAO apontam para as
+# publicadas. As do planejamento são as publicadas por ele, na versão com que
+# este CRM foi testado; VERSAO_DO_PLANEJAMENTO escolhe outra.
+
+name: crm-obras
+
+x-telemetria: &telemetria
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://observabilidade:18889
+
+# O provedor de identidade de quem usa os dois sistemas é o dos testes de
+# ponta a ponta de cada um: uma chave de teste, pública no repositório. Em
+# produção, o da construtora.
+x-identidade-do-crm: &identidade-do-crm
+  Authentication__Schemes__Bearer__ValidIssuer: crm-obras-e2e
+  Authentication__Schemes__Bearer__ValidAudiences__0: crm-obras-e2e
+  Authentication__Schemes__Bearer__SigningKeys__0__Issuer: crm-obras-e2e
+  Authentication__Schemes__Bearer__SigningKeys__0__Value: Y3JtLW9icmFzLWUyZTogY2hhdmUgZG9zIHRlc3RlcyBkZSBwb250YSBhIHBvbnRh
+
+# As conexões do CRM não tentam a criptografia GSS, do Kerberos: a base sem
+# shell não traz a biblioteca dele, e o Npgsql deixaria um erro inofensivo no
+# log a cada processo que sobe.
+
+services:
+  banco:
+    image: postgres:17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+    environment:
+      POSTGRES_DB: crm_obras
+      POSTGRES_PASSWORD: ${SENHA_DO_BANCO:-postgres}
+      SENHA_DA_APLICACAO: ${SENHA_DA_APLICACAO:-aplicacao}
+      SENHA_DO_PROCESSADOR: ${SENHA_DO_PROCESSADOR:-processador}
+    volumes:
+      - ./docker/banco:/docker-entrypoint-initdb.d:ro
+      - banco:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready', '--username', 'postgres', '--dbname', 'crm_obras']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Roda as migrações como o dono das tabelas, e sai. A API e o processador
+  # só sobem depois que ele termina bem.
+  migrador:
+    image: ${REGISTRO:-crm-obras}-migrador:${VERSAO:-local}
+    build:
+      context: .
+      target: migrador
+    environment:
+      ConnectionStrings__Crm: Host=banco;Database=crm_obras;Username=postgres;Password=${SENHA_DO_BANCO:-postgres};GSS Encryption Mode=Disable
+    depends_on:
+      banco:
+        condition: service_healthy
+
+  api:
+    image: ${REGISTRO:-crm-obras}-api:${VERSAO:-local}
+    build:
+      context: .
+      target: api
+    environment:
+      <<: [*telemetria, *identidade-do-crm]
+      ConnectionStrings__Crm: Host=banco;Database=crm_obras;Username=crm_aplicacao;Password=${SENHA_DA_APLICACAO:-aplicacao};GSS Encryption Mode=Disable
+    ports:
+      - 5291:8080
+    depends_on:
+      migrador:
+        condition: service_completed_successfully
+
+  # Leva a venda ganha ao planejamento, com o token de serviço que ele
+  # assina e o planejamento aceita (ADR-0017).
+  processador:
+    image: ${REGISTRO:-crm-obras}-processador:${VERSAO:-local}
+    build:
+      context: .
+      target: processador
+    environment:
+      <<: *telemetria
+      ConnectionStrings__Crm: Host=banco;Database=crm_obras;Username=crm_processador;Password=${SENHA_DO_PROCESSADOR:-processador};GSS Encryption Mode=Disable
+      Planejamento__Endereco: http://planejamento-api:8080/
+      Planejamento__Emissor: crm-obras
+      Planejamento__Audiencia: planejamento-obras-e2e
+      Planejamento__Chave: ${CHAVE_DO_CRM_NO_PLANEJAMENTO:-Y3JtLW9icmFzLWNvbXBvc2U6IGNoYXZlIGRvIHRva2VuIGRlIHNlcnZpY28gbm8gcGxhbmVqYW1lbnRv}
+    ports:
+      - 5292:8080
+    networks: [default, planejamento]
+    depends_on:
+      migrador:
+        condition: service_completed_successfully
+
+  web:
+    image: ${REGISTRO:-crm-obras}-web:${VERSAO:-local}
+    build:
+      context: .
+      target: web
+    ports:
+      - 5290:8080
+    depends_on:
+      - api
+
+  # --- O planejamento-obras, com as imagens que ele publica, numa rede dele:
+  # o front-end dele repassa /api para "api", que lá é a API dele.
+
+  planejamento-banco:
+    image: postgres:17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+    environment:
+      POSTGRES_DB: planejamento_obras
+      POSTGRES_PASSWORD: ${SENHA_DO_BANCO_DO_PLANEJAMENTO:-postgres}
+      SENHA_DA_APLICACAO: ${SENHA_DA_APLICACAO_DO_PLANEJAMENTO:-aplicacao}
+      SENHA_DO_PROCESSADOR: ${SENHA_DO_PROCESSADOR_DO_PLANEJAMENTO:-processador}
+    volumes:
+      - ./docker/planejamento:/docker-entrypoint-initdb.d:ro
+      - planejamento-banco:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready', '--username', 'postgres', '--dbname', 'planejamento_obras']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    networks: [planejamento]
+
+  planejamento-migrador:
+    image: ${REGISTRO_DO_PLANEJAMENTO:-ghcr.io/marcusbomfim/planejamento-obras}-migrador:${VERSAO_DO_PLANEJAMENTO:-sha-d46a448}
+    environment:
+      ConnectionStrings__Planejamento: Host=planejamento-banco;Database=planejamento_obras;Username=postgres;Password=${SENHA_DO_BANCO_DO_PLANEJAMENTO:-postgres}
+    depends_on:
+      planejamento-banco:
+        condition: service_healthy
+    networks: [planejamento]
+
+  # Aceita dois emissores: o provedor de identidade de quem usa, e o CRM, que
+  # se apresenta com o token de serviço para abrir o cronograma da obra.
+  planejamento-api:
+    image: ${REGISTRO_DO_PLANEJAMENTO:-ghcr.io/marcusbomfim/planejamento-obras}-api:${VERSAO_DO_PLANEJAMENTO:-sha-d46a448}
+    environment:
+      <<: *telemetria
+      ConnectionStrings__Planejamento: Host=planejamento-banco;Database=planejamento_obras;Username=planejamento_aplicacao;Password=${SENHA_DA_APLICACAO_DO_PLANEJAMENTO:-aplicacao}
+      Authentication__Schemes__Bearer__ValidIssuers__0: planejamento-obras-e2e
+      Authentication__Schemes__Bearer__ValidIssuers__1: crm-obras
+      Authentication__Schemes__Bearer__ValidAudiences__0: planejamento-obras-e2e
+      Authentication__Schemes__Bearer__SigningKeys__0__Issuer: planejamento-obras-e2e
+      Authentication__Schemes__Bearer__SigningKeys__0__Value: cGxhbmVqYW1lbnRvLW9icmFzLWUyZTogY2hhdmUgZG9zIHRlc3RlcyBkZSBwb250YSBhIHBvbnRh
+      Authentication__Schemes__Bearer__SigningKeys__1__Issuer: crm-obras
+      Authentication__Schemes__Bearer__SigningKeys__1__Value: ${CHAVE_DO_CRM_NO_PLANEJAMENTO:-Y3JtLW9icmFzLWNvbXBvc2U6IGNoYXZlIGRvIHRva2VuIGRlIHNlcnZpY28gbm8gcGxhbmVqYW1lbnRv}
+    ports:
+      - 5281:8080
+    networks:
+      planejamento:
+        aliases: [api]
+    depends_on:
+      planejamento-migrador:
+        condition: service_completed_successfully
+
+  planejamento-web:
+    image: ${REGISTRO_DO_PLANEJAMENTO:-ghcr.io/marcusbomfim/planejamento-obras}-web:${VERSAO_DO_PLANEJAMENTO:-sha-d46a448}
+    ports:
+      - 5280:8080
+    networks: [planejamento]
+    depends_on:
+      - planejamento-api
+
+  # O painel do .NET Aspire, sozinho: recebe rastros, métricas e logs por OTLP
+  # e os mostra — os do CRM e os do planejamento, no mesmo rastro. Sem login:
+  # é para a máquina de quem desenvolve.
+  observabilidade:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.6.1@sha256:03099004e132a7ca2feb66c5fa24715ffeaaf2fffab6f8b2cda23de3abd3ea45
+    environment:
+      ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: 'true'
+    ports:
+      - 18888:18888
+    networks: [default, planejamento]
+
+networks:
+  default: {}
+  planejamento: {}
+
+volumes:
+  banco:
+  planejamento-banco:

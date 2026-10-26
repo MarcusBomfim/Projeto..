@@ -83,3 +83,90 @@ jobs:
             e2e/playwright-report/
             e2e/test-results/
           retention-days: 7
+
+  # Os mesmos testes contra as imagens Docker, na pilha do Compose: o que vai
+  # para produção, com os papéis de produção no banco, o processador e o
+  # planejamento-obras publicado por ele (ADR-0019). Só aqui a venda ganha
+  # vira obra.
+  imagens:
+    name: Navegador contra as imagens Docker
+    runs-on: ubuntu-latest
+
+    env:
+      E2E_WEB: http://localhost:5290
+      E2E_PLANEJAMENTO: http://localhost:5281
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Compilar as imagens e subir a pilha
+        run: docker compose up --build --detach
+
+      # Sem shell nas imagens, não há verificação de saúde dentro delas: quem
+      # pergunta é quem está de fora, como faria o orquestrador.
+      - name: Esperar a API, o processador e o planejamento ficarem prontos
+        run: |
+          for porta in 5291 5292 5281; do
+            curl --fail --silent --show-error --retry 60 --retry-delay 2 --retry-all-errors \
+              "http://localhost:$porta/saude/pronta"
+            echo
+          done
+
+      # O que a pilha promete e os testes no navegador não enxergam: a API e o
+      # processador conectados com os papéis deles, que não passam por cima
+      # da segurança por linha, e as funções que atravessam construtoras fora
+      # do alcance da API.
+      - name: Conferir os papéis no banco
+        run: |
+          docker compose exec -T banco psql --username postgres --dbname crm_obras --set ON_ERROR_STOP=1 --quiet <<'SQL'
+          do $$
+          begin
+            if exists (select from pg_roles where rolname in ('crm_aplicacao', 'crm_processador') and (rolsuper or rolbypassrls)) then
+              raise exception 'Um papel da pilha passa por cima da segurança por linha.';
+            end if;
+            if exists (select from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                       where n.nspname = 'crm'
+                         and p.proname in ('reservar_mensagens', 'apagar_mensagens_tratadas_antes_de', 'apagar_chaves_de_idempotencia_antes_de')
+                         and has_function_privilege('crm_aplicacao', p.oid, 'execute')) then
+              raise exception 'A API executa uma função que atravessa construtoras.';
+            end if;
+            if not exists (select from pg_stat_activity where usename = 'crm_aplicacao')
+               or not exists (select from pg_stat_activity where usename = 'crm_processador') then
+              raise exception 'A API ou o processador não estão conectados com o papel deles.';
+            end if;
+            if exists (select from pg_stat_activity where usename = 'postgres' and backend_type = 'client backend' and pid <> pg_backend_pid()) then
+              raise exception 'Alguém além desta conferência está conectado como postgres.';
+            end if;
+          end
+          $$;
+          SQL
+
+      - name: Executar os testes de ponta a ponta contra a pilha
+        working-directory: e2e
+        run: |
+          npm ci
+          npm run teste:imagens
+
+      - name: Guardar o log da pilha
+        if: failure()
+        run: docker compose logs --no-color > compose.log
+
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: relatorio-contra-as-imagens
+          path: |
+            compose.log
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
+
+      - name: Derrubar a pilha
+        if: always()
+        run: docker compose down --volumes

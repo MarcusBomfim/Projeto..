@@ -9,6 +9,7 @@
   "scripts": {
     "preteste": "dotnet build ../CrmObras.slnx --nologo -v q && npm --prefix ../web run build",
     "teste": "playwright test",
+    "teste:imagens": "playwright test --config playwright.imagens.config.ts",
     "tipagem": "tsc --noEmit",
     "formatacao": "prettier --check ."
   },

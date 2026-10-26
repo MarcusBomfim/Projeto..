@@ -1,0 +1,18 @@
+# O que vai para o docker build: o código e os arquivos de build. O resto —
+# compilados, dependências baixadas, testes, documentos — fica de fora: deixa
+# o envio do contexto rápido e o cache das camadas estável.
+.git/
+.github/
+**/bin/
+**/obj/
+**/node_modules/
+**/TestResults/
+web/dist/
+web/coverage/
+e2e/
+tests/
+docs/
+*.md
+compose.yaml
+Dockerfile
+.dockerignore

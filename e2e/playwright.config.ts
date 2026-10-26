@@ -9,6 +9,9 @@ import { Api, Banco, Web } from './apoio/pilha';
  *
  * O navegador é o Google Chrome instalado na máquina: nada a baixar, aqui ou
  * no CI, que já o traz.
+ *
+ * O planejamento-obras não está nesta pilha: a venda que vira obra só é
+ * testada contra a do Compose (playwright.imagens.config.ts).
  */
 
 /** O ambiente de quem roda os testes, e mais o que cada processo precisa. */
@@ -22,6 +25,7 @@ function ambiente(extras: Record<string, string>): Record<string, string> {
 
 export default defineConfig({
   testDir: './testes',
+  testIgnore: ['**/*.compose.spec.ts'],
   timeout: 90_000,
   fullyParallel: false,
   workers: 1,

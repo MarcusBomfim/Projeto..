@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml/badge.svg)](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml)
 
-O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões, a previsão de receita e os relatórios de onde se ganha e se perde, tudo gravado no PostgreSQL, com cada construtora vendo só o que é dela, aberto por uma API REST e por telas no navegador — e, na próxima parte, o contrato que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras).
+O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões, a previsão de receita e os relatórios de onde se ganha e se perde, tudo gravado no PostgreSQL, com cada construtora vendo só o que é dela, aberto por uma API REST e por telas no navegador — e a proposta aceita que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras), por eventos, com o rastro de ponta a ponta e em imagens prontas para implantar.
 
-C# 14 · .NET 10 · ASP.NET Core 10 · EF Core 10 · PostgreSQL 17 · React 19 · TypeScript · Vite · xUnit v3 · Vitest · Testcontainers · Playwright · GitHub Actions
+C# 14 · .NET 10 · ASP.NET Core 10 · EF Core 10 · PostgreSQL 17 · React 19 · TypeScript · Vite · OpenTelemetry · Docker · xUnit v3 · Vitest · Testcontainers · Playwright · GitHub Actions
 
 ## O problema
 
@@ -291,9 +291,35 @@ E a previsão: o previsto de cada mês sobre o teto do que está em aberto, a ta
 
 As três telas são do teste de ponta a ponta, [`carteira-do-readme.spec.ts`](e2e/testes/carteira-do-readme.spec.ts): ele cria a carteira da Rota Sul pela API, nas datas de hoje, abre o Chrome contra a pilha inteira e, com `IMAGENS=1`, tira estas fotos.
 
+### A venda ganha vira obra
+
+Quando o Sérgio aceita a proposta, a venda do galpão é ganha — e a obra precisa nascer no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras), onde vai ganhar cronograma, orçamento e linha de base. O aceite não espera o planejamento, nem depende de ele estar no ar: a venda ganha registra o fato, e o fato vai para a caixa de saída na mesma transação da venda ([ADR-0016](docs/adr/0016-eventos-de-dominio-e-caixa-de-saida.md)) — ou ficam os dois, ou nenhum.
+
+Um processador, noutro contêiner, acorda com a mensagem nova e pede ao planejamento o cronograma da obra, com o nome dela, em nome da construtora ([ADR-0017](docs/adr/0017-a-venda-ganha-vira-obra-no-planejamento.md)):
+
+```http
+POST /api/cronogramas
+Authorization: Bearer eyJ…        ← o token de serviço do CRM: empresa = a construtora, papel planejador
+Idempotency-Key: crm-obras:venda-ganha:01a170d3-8b50-73a8-96ca-587e974ef698
+
+{ "nome": "Galpão de 1.200 m² em Jundiaí" }
+```
+
+```text
+A venda 01a170d3-8b50-73a8-96ca-587e974ef698 virou o cronograma 01a170d3-9041-7a86-b47a-f56824040e47 no planejamento-obras (já aberto antes: False).
+```
+
+Se o planejamento estiver fora do ar, lento ou recusar, a mensagem guarda o que ele disse e volta em 30 segundos, um minuto, dois — até uma hora entre as tentativas, e na décima a fila desiste e pede alguém. Se o processador cair depois de o planejamento abrir o cronograma, a mensagem volta e o pedido vai de novo — com a mesma chave, e o planejamento devolve o cronograma que já abriu: uma venda, uma obra.
+
+E tudo isso é um rastro só no painel do OpenTelemetry ([ADR-0018](docs/adr/0018-observabilidade-com-opentelemetry.md)): o pedido que aceitou a proposta, a publicação na caixa, o tratamento no processador, o pedido ao planejamento e o que a API do planejamento fez com ele — mesmo com horas entre um passo e outro.
+
+![O rastro do aceite no painel do OpenTelemetry: a API do CRM, a publicação na caixa de saída, o tratamento no processador e o cronograma aberto na API do planejamento-obras](docs/imagens/rastro.png)
+
+O teste de ponta a ponta [`venda-vira-obra.compose.spec.ts`](e2e/testes/venda-vira-obra.compose.spec.ts) aceita a proposta no CRM e espera o cronograma aparecer no planejamento, os dois sistemas em contêineres — e, com `IMAGENS=1`, tira esta foto do painel.
+
 ## Roteiro
 
-O projeto é construído em partes, cada uma entregue funcionando, testada e documentada.
+O projeto foi construído em oito partes, cada uma entregue funcionando, testada e documentada — e estão todas prontas.
 
 | Parte | Conteúdo | |
 |--:|---|---|
@@ -304,9 +330,9 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 | 5 | Persistência com EF Core e PostgreSQL, multiempresa com segurança por linha, testes com Testcontainers | ✅ |
 | 6 | API REST: JWT, autorização por papel, ProblemDetails, concorrência otimista e idempotência | ✅ |
 | 7 | Front-end em React: funil em kanban, ficha do cliente com a linha do tempo e painel da previsão | ✅ |
-| 8 | Integração com o planejamento-obras por eventos — a proposta aceita vira obra —, observabilidade, Docker e entrega contínua | |
+| 8 | Integração com o planejamento-obras por eventos — a proposta aceita vira obra —, observabilidade, Docker e entrega contínua | ✅ |
 
-## O que já está pronto
+## O que está pronto
 
 **Parte 1 — clientes e leads**
 
@@ -380,6 +406,20 @@ O projeto é construído em partes, cada uma entregue funcionando, testada e doc
 - **Tipado pelo contrato.** O documento OpenAPI fica no repositório, um teste da API falha se ela mudar sem ele, e os tipos do front-end saem dele: caminho, parâmetro, resposta, enum — e os cabeçalhos exigidos: o `If-Match` esquecido é erro de compilação.
 - **Sessão pelo token** do provedor de identidade, guardado na aba: quem entrou e o cargo no topo; token recusado ou vencido leva de volta à entrada, dizendo por quê; e trocar de sessão esvazia o cache, para uma construtora não ver o que a outra leu.
 
+**Parte 8 — a venda que vira obra, observabilidade, contêineres e entrega**
+
+- **Eventos de domínio:** a venda ganha registra o fato — direto ou pelo aceite da proposta —, com a obra, o cliente e o valor do instante do ganho. O ganho recusado não é fato, e reler a venda do banco não faz nada acontecer de novo.
+- **Caixa de saída na mesma transação** que grava a venda: nenhum fato se perde entre gravar e publicar, nenhum se publica sem ter sido gravado. Um catálogo, com tipo e formato numerado, separa a mensagem publicada do evento, e a mensagem é da construtora da venda, com a segurança por linha.
+- **Processador em host próprio**, que reserva com `for update skip locked` — quantos processadores houver dividem a fila —, acorda pelo `LISTEN`/`NOTIFY` do PostgreSQL e olha a fila de tempos em tempos. Cada mensagem é tratada em nome da construtora dela, e as funções que atravessam construtoras são só do papel do processador.
+- **A venda ganha abre a obra no planejamento-obras**, pela API dele: o cronograma com o nome da obra, em nome da construtora, com um token de serviço que o CRM assina — só com o papel de quem planeja, válido por cinco minutos — e a chave de idempotência feita da venda: a repetição devolve o mesmo cronograma.
+- **Falha com espera crescente**: o planejamento fora do ar, lento ou recusando é falha do tratamento, com o que ele disse guardado na mensagem; ela volta em 30 segundos, o dobro a cada falha, até uma hora, e na décima a fila desiste. O que o tratador gravou no CRM é desfeito junto.
+- **Limpezas de hora em hora**: as chaves de idempotência com mais de 24 horas e as mensagens tratadas há mais de 7 dias. A abandonada fica, para alguém ver por quê.
+- **OpenTelemetry na API e no processador**, com o rastro atravessando a caixa de saída e chegando ao planejamento: o pedido, a publicação, o tratamento, o pedido ao planejamento e a API dele num rastro só. Olhar a fila vazia não deixa rastro; para onde a telemetria vai é configuração do ambiente.
+- **Métricas da fila** por tipo e resultado, com a duração e a **espera** — da venda ganha ao cronograma aberto. **Saúde** em `/saude/viva` e `/saude/pronta`: o banco fora do ar tira de pronto, e não de vivo; o planejamento fora do ar não tira de nenhum dos dois — a fila segura a obra até ele voltar.
+- **Quatro imagens de um Dockerfile** — a API, o processador, o migrador e o front-end no nginx —, sem shell e sem root, com as bases fixadas pelo digest. O nginx repassa a API sem compressão, para a ETag chegar forte ao `If-Match`.
+- **A pilha inteira no Compose**: o CRM com os papéis de produção no banco, o planejamento-obras com as imagens que ele publica, e o painel do .NET Aspire recebendo a telemetria dos dois.
+- **Entrega contínua:** cada commit da `main` que passa no CI vira imagens compiladas uma vez, testadas de ponta a ponta contra o planejamento de verdade e publicadas — as mesmas — no GitHub Container Registry, com a proveniência assinada. Uma tag de versão só sai de commit verde.
+
 ## Decisões
 
 As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](docs/adr):
@@ -399,6 +439,11 @@ As decisões que mudam o desenho do sistema estão registradas em [`docs/adr`](d
 - [ADR-0013](docs/adr/0013-criacao-com-chave-de-idempotencia.md) — criar exige chave de idempotência, gravada na mesma transação da criação.
 - [ADR-0014](docs/adr/0014-contrato-http.md) — o contrato HTTP: token com a construtora, política pelo cargo, versão na ETag, erro em ProblemDetails.
 - [ADR-0015](docs/adr/0015-front-end-tipado-pelo-contrato-da-api.md) — o front-end é tipado pelo contrato da API, a regra fica no domínio e o estado do servidor, no cache.
+- [ADR-0016](docs/adr/0016-eventos-de-dominio-e-caixa-de-saida.md) — os fatos do domínio são registrados pelo agregado, com o que era verdade no instante, e publicados numa caixa de saída na mesma transação.
+- [ADR-0017](docs/adr/0017-a-venda-ganha-vira-obra-no-planejamento.md) — a venda ganha vira obra no planejamento-obras por um processador em segundo plano, com token de serviço e a chave de idempotência feita da venda.
+- [ADR-0018](docs/adr/0018-observabilidade-com-opentelemetry.md) — OpenTelemetry nos dois serviços, com o rastro atravessando a caixa de saída até o planejamento; a espera da fila como métrica; viva e pronta como perguntas diferentes.
+- [ADR-0019](docs/adr/0019-pilha-em-conteineres.md) — imagens sem shell nem root, a API passando forte pelo nginx, migrações num contêiner à parte, o banco com os papéis de produção e o planejamento-obras ao lado.
+- [ADR-0020](docs/adr/0020-entrega-continua.md) — entrega contínua: compilar uma vez, testar o que foi compilado e publicar o que foi testado; versão só de commit verde, com proveniência assinada.
 
 E algumas que não precisaram de ADR:
 
@@ -426,7 +471,10 @@ E algumas que não precisaram de ADR:
 - **A API, em memória, contra o PostgreSQL do contêiner**: todo endpoint com política, `If-Match` nas alterações e chave de idempotência nas criações — conferido percorrendo os endpoints mapeados, e no documento OpenAPI —; o token sem assinatura, vencido, de outro emissor ou sem construtora; o que cada cargo pode e não pode; a repetição, a chave reutilizada e as dez criações simultâneas; as dez alterações simultâneas sobre a mesma versão; a construtora que não enxerga a outra; a conversão concorrente que não deixa conta a mais; e o aceite que, se a venda não grava, desfaz a proposta junto.
 - **O contrato publicado** é o que a API serve, e os tipos do front-end batem com ele.
 - **O front-end com a aplicação inteira aberta**: as rotas, a sessão e o cache de verdade, e só a API de mentira, que recusa o pedido que o teste não previu. O kanban que move pelo seletor e pelo arrasto com a versão lida, mostra a recusa do domínio e não pede nada quando o cartão é solto na própria coluna; a ficha; a previsão com a tabela; a sessão que vence com a tela aberta. E a geometria do gráfico, com números.
-- **De ponta a ponta, no Chrome**: a carteira da Rota Sul criada pela API, e o navegador arrastando a venda de verdade, vendo a recusa do domínio, abrindo a ficha e conferindo a previsão — contra o banco, a API e o front-end de produção.
+- **De ponta a ponta, no Chrome**: a carteira da Rota Sul criada pela API, e o navegador arrastando a venda de verdade, vendo a recusa do domínio, abrindo a ficha e conferindo a previsão — contra o banco, a API e o front-end de produção. Os mesmos testes rodam contra as imagens Docker, na pilha do Compose, com os papéis de produção no banco; e só lá, com o processador e o planejamento-obras no ar, a proposta aceita no CRM vira o cronograma da obra no planejamento.
+- **A caixa de saída no banco de verdade**: a venda ganha e a mensagem dela gravadas juntas — e, no conflito de versão ou na transação desfeita, nenhuma das duas —; a mensagem que outra construtora não vê; a API que não alcança as funções que atravessam construtoras; a reserva que dois processadores nunca dividem; a espera que dobra até uma hora; o aviso que só a transação confirmada dá; e o rastro de quem gravou, guardado na mensagem.
+- **O processador contra o banco e um planejamento de mentira** — um servidor HTTP de verdade, numa porta qualquer, com a chave de idempotência dele: cada mensagem tratada uma vez, em nome da construtora dela; o token de serviço conferido pela assinatura; o planejamento fora do ar, lento, recusando ou sem ninguém no endereço; a obra que não nasce duas vezes quando a confirmação se perde; o nome cortado onde o planejamento não aceita mais; o host que sobe só com a configuração completa, acorda com a venda ganha e sobrevive ao banco fora do ar.
+- **A observabilidade, com o SDK do OpenTelemetry de verdade** exportando para a memória: o rastro da venda ganha do pedido HTTP à mensagem, e da mensagem ao pedido ao planejamento, com o `traceparent` chegando lá; a volta vazia sem rastro; a falha com a exceção; cada tentativa medida; a saúde da API e do processador com e sem banco, com a fila girando e parada; e a telemetria saindo por OTLP para um coletor de mentira.
 - **O exemplo deste README**, de ponta a ponta — pelo domínio, pela API e no navegador.
 - **Arquitetura.** O domínio só referencia a biblioteca padrão; toda classe pública é selada, estática ou abstrata; nenhuma propriedade tem `set` público; os valores não têm construtor público; e todo agregado tem identidade própria.
 
@@ -457,6 +505,25 @@ dotnet user-jwts create --project src/CrmObras.Api --role vendedor --claim const
 
 Em desenvolvimento, a API conecta como `postgres`, um superusuário, que passa por cima da segurança por linha — o filtro do código continua separando as construtoras. Em produção, ela conecta com um papel comum, que a segurança por linha alcança ([ADR-0011](docs/adr/0011-documentos-jsonb-separados-por-construtora.md)). As alçadas de desconto e o fuso da construtora estão em `appsettings.json`.
 
+A venda ganha vai ao planejamento pelo processador, noutro processo, que responde só às verificações de saúde, em `http://localhost:5092`. Em desenvolvimento, ele procura a API do planejamento em `http://localhost:5080` e assina o token de serviço com a chave de `appsettings.Development.json` — o planejamento precisa aceitar o emissor `crm-obras-desenvolvimento` com ela, em `Authentication:Schemes:Bearer:ValidIssuers` e `SigningKeys` ([ADR-0017](docs/adr/0017-a-venda-ganha-vira-obra-no-planejamento.md)):
+
+```bash
+dotnet run --project src/CrmObras.Processador
+```
+
+Para a pilha inteira em contêineres — o CRM com os papéis de produção no banco, o processador, o planejamento-obras com as imagens que ele publica, e o painel do OpenTelemetry dos dois:
+
+```bash
+docker compose up --build
+```
+
+O CRM abre em `http://localhost:5290`, o planejamento em `http://localhost:5280` e o painel dos rastros em `http://localhost:18888`. Os dois aceitam a chave dos testes de ponta a ponta, e o token de entrada sai do próprio repositório — o do planejamento, para ver lá a obra que a venda abriu, com a mesma construtora:
+
+```bash
+node e2e/apoio/token.ts --construtora 0199e3b4-0000-7000-8000-000000000001 --papel diretor
+node e2e/apoio/token.ts --planejamento --construtora 0199e3b4-0000-7000-8000-000000000001
+```
+
 O front-end precisa do [Node.js 24](https://nodejs.org). Com a API no ar, ele abre em `http://localhost:5190` e pede o token — o do `dotnet user-jwts`, com o cargo, a construtora e o login que quiser. O Vite repassa `/api` para a API, e os dois ficam na mesma origem:
 
 ```bash
@@ -476,6 +543,13 @@ Os de ponta a ponta compilam e sobem a API e o front-end de produção contra um
 docker run -d --name crm-obras-e2e -e POSTGRES_PASSWORD=postgres -p 55434:5432 postgres:17.6-alpine
 npm ci --prefix e2e
 npm --prefix e2e run teste
+```
+
+Contra a pilha do Compose — as imagens, o processador e o planejamento —, os mesmos testes e os que só ela pode rodar, como o da venda que vira obra:
+
+```bash
+docker compose up --build --detach
+E2E_WEB=http://localhost:5290 npm --prefix e2e run teste:imagens
 ```
 
 Quando a API muda, o contrato publicado é regravado pelo próprio teste dele, e os tipos do front-end saem do contrato:
@@ -502,15 +576,23 @@ src/CrmObras.Dominio/                  regras do negócio, sem dependências
   Relatorios/                          previsão de receita, conversão por etapa, ciclo de venda e motivos de perda
 src/CrmObras.Infraestrutura/           o que o domínio não sabe
   Documentos/                          o formato gravado de cada agregado, e a leitura estrita
+  Mensagens/                           o formato publicado de cada evento de domínio
   Persistencia/                        contexto, registros, migrações, repositórios, chaves de idempotência e a construtora em cada conexão
+    CaixaDeSaida/                      a mensagem gravada com o agregado, a fila que a reserva e o rastro que ela leva
+src/CrmObras.Observabilidade/          OpenTelemetry e as verificações de saúde, iguais na API e no processador
 src/CrmObras.Api/                      a API REST
   Hospedagem/                          os serviços, o caminho de cada pedido e o documento OpenAPI
   Seguranca/                           papéis, políticas, e a construtora e quem pede, lidos do token
   Http/                                ETag, If-Match, idempotência, o catálogo dos problemas e a tradução das exceções
   Recursos/                            um recurso por agregado, a agenda, o quadro, os relatórios e a linha do tempo
+src/CrmObras.Processamento/            a fila da caixa de saída, os tratadores, as rotinas e as métricas
+  Planejamento/                        o cliente da API do planejamento-obras e o token de serviço
+  Tratadores/                          a venda ganha que vira obra
+src/CrmObras.Processador/              o host do processamento, que só responde à saúde
 tests/CrmObras.Dominio.Testes/         exemplos, propriedades, a reconstituição e o exemplo deste README
 tests/CrmObras.Infraestrutura.Testes/  documentos, e o banco de verdade num contêiner
 tests/CrmObras.Api.Testes/             a API em memória, contra o banco num contêiner, e o exemplo deste README pela API
+tests/CrmObras.Processamento.Testes/   o processador contra o banco e um planejamento de mentira, a saúde e os rastros
 tests/CrmObras.Arquitetura.Testes/     regras que o domínio não pode quebrar
 web/                                   o front-end em React
   src/api/                             o cliente HTTP e os tipos gerados do contrato
@@ -518,7 +600,10 @@ web/                                   o front-end em React
   src/funil/                           o kanban do funil, e mover a venda
   src/contas/                          os clientes e a ficha de cada um
   src/previsao/                        o painel da previsão, e a geometria do gráfico
-e2e/                                   os testes de ponta a ponta, no Chrome, contra a pilha inteira
+e2e/                                   os testes de ponta a ponta, no Chrome, contra a pilha inteira ou a do Compose
+docker/                                os papéis dos dois bancos, e o nginx do front-end
+Dockerfile                             as quatro imagens do CRM
+compose.yaml                           o CRM, o planejamento-obras e o painel do OpenTelemetry
 docs/adr/                              decisões de arquitetura
 docs/api/                              o contrato da API, em OpenAPI, e os problemas que ela devolve
 docs/imagens/                          as telas deste README, tiradas pelo teste de ponta a ponta
