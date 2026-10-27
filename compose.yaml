@@ -36,7 +36,7 @@ x-identidade-do-crm: &identidade-do-crm
 
 services:
   banco:
-    image: postgres:17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+    image: postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
     environment:
       POSTGRES_DB: crm_obras
       POSTGRES_PASSWORD: ${SENHA_DO_BANCO:-postgres}
@@ -113,7 +113,7 @@ services:
   # o front-end dele repassa /api para "api", que lá é a API dele.
 
   planejamento-banco:
-    image: postgres:17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+    image: postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
     environment:
       POSTGRES_DB: planejamento_obras
       POSTGRES_PASSWORD: ${SENHA_DO_BANCO_DO_PLANEJAMENTO:-postgres}
@@ -173,7 +173,7 @@ services:
   # e os mostra — os do CRM e os do planejamento, no mesmo rastro. Sem login:
   # é para a máquina de quem desenvolve.
   observabilidade:
-    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.6.1@sha256:03099004e132a7ca2feb66c5fa24715ffeaaf2fffab6f8b2cda23de3abd3ea45
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.6.2@sha256:4f494c0b519ba58e56f8bb6830041f8ab071e6842c1f4dd1b474d4793dbe1593
     environment:
       ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: 'true'
     ports:
