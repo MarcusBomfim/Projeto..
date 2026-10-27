@@ -1,8 +1,11 @@
 # CRM de Obras
 
-[![CI](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml/badge.svg)](https://github.com/MarcusBomfim/Projeto../actions/workflows/ci.yml)
+[![CI](https://github.com/MarcusBomfim/crm-obras/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcusBomfim/crm-obras/actions/workflows/ci.yml)
+[![Ponta a ponta](https://github.com/MarcusBomfim/crm-obras/actions/workflows/e2e.yml/badge.svg)](https://github.com/MarcusBomfim/crm-obras/actions/workflows/e2e.yml)
+[![Entrega](https://github.com/MarcusBomfim/crm-obras/actions/workflows/entrega.yml/badge.svg)](https://github.com/MarcusBomfim/crm-obras/actions/workflows/entrega.yml)
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue.svg)](LICENSE)
 
-O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões, a previsão de receita e os relatórios de onde se ganha e se perde, tudo gravado no PostgreSQL, com cada construtora vendo só o que é dela, aberto por uma API REST e por telas no navegador — e a proposta aceita que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras), por eventos, com o rastro de ponta a ponta e em imagens prontas para implantar.
+O relacionamento de uma construtora com os clientes, antes da obra existir: o interessado que chega pelo site ou por indicação, as perguntas que dizem se ele vai mesmo comprar, o cliente que já está na base com outro nome, a venda que anda pelo funil, a agenda de cada vendedor, a proposta negociada em versões, a previsão de receita e os relatórios de onde se ganha e se perde, tudo gravado no PostgreSQL, com cada construtora vendo só o que é dela, aberto por uma API REST e por telas no navegador — e a proposta aceita que vira obra no [planejamento-obras](https://github.com/MarcusBomfim/planejamento-obras), por eventos, com o rastro de ponta a ponta e em imagens prontas para implantar.
 
 C# 14 · .NET 10 · ASP.NET Core 10 · EF Core 10 · PostgreSQL 17 · React 19 · TypeScript · Vite · OpenTelemetry · Docker · xUnit v3 · Vitest · Testcontainers · Playwright · GitHub Actions
 
@@ -252,7 +255,7 @@ Se alguém mexeu no lead no meio, a resposta é 412, com a versão atual. E a re
 
 ```json
 {
-  "type": "https://github.com/MarcusBomfim/Projeto../blob/main/docs/api/problemas.md#regra-do-negocio",
+  "type": "https://github.com/MarcusBomfim/crm-obras/blob/main/docs/api/problemas.md#regra-do-negocio",
   "title": "O pedido fere uma regra do negócio.",
   "status": 422,
   "detail": "O desconto de 12% passa da alçada do vendedor, de 5%: precisa da aprovação do diretor.",
@@ -293,7 +296,7 @@ As três telas são do teste de ponta a ponta, [`carteira-do-readme.spec.ts`](e2
 
 ### A venda ganha vira obra
 
-Quando o Sérgio aceita a proposta, a venda do galpão é ganha — e a obra precisa nascer no [planejamento-obras](https://github.com/MarcusBomfim/Projeto-C--obras), onde vai ganhar cronograma, orçamento e linha de base. O aceite não espera o planejamento, nem depende de ele estar no ar: a venda ganha registra o fato, e o fato vai para a caixa de saída na mesma transação da venda ([ADR-0016](docs/adr/0016-eventos-de-dominio-e-caixa-de-saida.md)) — ou ficam os dois, ou nenhum.
+Quando o Sérgio aceita a proposta, a venda do galpão é ganha — e a obra precisa nascer no [planejamento-obras](https://github.com/MarcusBomfim/planejamento-obras), onde vai ganhar cronograma, orçamento e linha de base. O aceite não espera o planejamento, nem depende de ele estar no ar: a venda ganha registra o fato, e o fato vai para a caixa de saída na mesma transação da venda ([ADR-0016](docs/adr/0016-eventos-de-dominio-e-caixa-de-saida.md)) — ou ficam os dois, ou nenhum.
 
 Um processador, noutro contêiner, acorda com a mensagem nova e pede ao planejamento o cronograma da obra, com o nome dela, em nome da construtora ([ADR-0017](docs/adr/0017-a-venda-ganha-vira-obra-no-planejamento.md)):
 
@@ -608,3 +611,7 @@ docs/adr/                              decisões de arquitetura
 docs/api/                              o contrato da API, em OpenAPI, e os problemas que ela devolve
 docs/imagens/                          as telas deste README, tiradas pelo teste de ponta a ponta
 ```
+
+## Licença
+
+[MIT](LICENSE): use, copie, modifique e distribua à vontade, mantendo o aviso de copyright.

@@ -5,7 +5,7 @@ describe('o problema de uma consulta', () => {
   test('vem da API em ProblemDetails, com título e detalhe prontos', () => {
     expect(
       comoProblema({
-        type: 'https://github.com/MarcusBomfim/Projeto../blob/main/docs/api/problemas.md#nao-encontrado',
+        type: 'https://github.com/MarcusBomfim/crm-obras/blob/main/docs/api/problemas.md#nao-encontrado',
         title: 'Não encontrado.',
         status: 404,
         detail: 'Não existe a conta 0199.',
