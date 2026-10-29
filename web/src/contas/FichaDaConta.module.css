@@ -1,11 +1,39 @@
 .voltar {
-  margin: 0 0 0.5rem;
-  font-size: 0.9rem;
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  font-weight: 550;
+}
+
+.voltar a {
+  color: var(--texto-suave);
+  text-decoration: none;
+}
+
+.voltar a:hover {
+  color: var(--destaque);
+}
+
+/* O cliente no alto: as iniciais grandes, o nome e o documento. */
+.cabecalho {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.75rem;
+}
+
+.cabecalho h1 {
+  margin: 0;
+}
+
+.documento {
+  margin: 0.15rem 0 0;
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
 }
 
 .colunas {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  grid-template-columns: minmax(0, 2fr) minmax(17rem, 1fr);
   gap: 1.25rem;
   align-items: start;
 }
@@ -22,7 +50,7 @@
 }
 
 .bloco {
-  padding: 1rem 1.25rem;
+  padding: 1.15rem 1.35rem 1.25rem;
   border: 1px solid var(--borda);
   border-radius: var(--raio);
   background: var(--superficie);
@@ -30,8 +58,13 @@
 }
 
 .bloco h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1.1rem;
+  margin: 0 0 0.9rem;
+  font-size: 1rem;
+}
+
+.bloco table {
+  margin: 0 -0.75rem;
+  width: calc(100% + 1.5rem);
 }
 
 .bloco table th[scope='row'] {
@@ -47,45 +80,63 @@
 
 .contatos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
   gap: 0.75rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* Cada contato: as iniciais à esquerda, e o nome, o papel e os meios ao lado. */
 .contatos li {
-  padding: 0.6rem 0.75rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.1rem 0.75rem;
+  align-content: start;
+  padding: 0.85rem;
   border: 1px solid var(--borda);
-  border-radius: 8px;
+  border-radius: 12px;
+  background: var(--superficie-2);
+}
+
+.contatos li > span:first-child {
+  grid-row: span 3;
 }
 
 .contatos p {
   margin: 0;
 }
 
+.nome {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+}
+
 .detalhe {
   color: var(--texto-suave);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 .meios {
   display: grid;
-  font-size: 0.85rem;
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
   overflow-wrap: anywhere;
 }
 
 .linha {
   position: sticky;
-  top: 4.5rem;
+  top: 2rem;
 }
 
 .acontecimentos {
   display: grid;
-  gap: 0.75rem;
+  gap: 1rem;
   margin: 0;
-  padding: 0 0 0 1rem;
-  border-left: 2px solid var(--borda-forte);
+  padding: 0 0 0 1.1rem;
+  border-left: 2px solid var(--destaque-fundo);
   list-style: none;
 }
 
@@ -95,23 +146,25 @@
 
 .acontecimentos li::before {
   position: absolute;
-  top: 0.45rem;
-  left: -1.4rem;
-  width: 0.7rem;
-  height: 0.7rem;
-  border: 2px solid var(--superficie);
+  top: 0.35rem;
+  left: -1.55rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 3px solid var(--superficie);
   border-radius: 50%;
   background: var(--destaque);
+  box-shadow: 0 0 0 2px var(--destaque-fundo);
   content: '';
 }
 
 .acontecimentos time {
   color: var(--texto-suave);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
+  font-weight: 550;
 }
 
 .acontecimentos p {
-  margin: 0;
-  font-size: 0.9rem;
+  margin: 0.1rem 0 0;
+  font-size: 0.88rem;
 }

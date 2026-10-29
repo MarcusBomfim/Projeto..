@@ -5,6 +5,7 @@ import { comoProblema } from '../api/problemas';
 import { AvisoDeProblema } from '../comum/AvisoDeProblema';
 import { Carregando } from '../comum/Carregando';
 import { formatarDataEHora, formatarMoeda } from '../comum/formatacao';
+import { Iniciais } from '../comum/Iniciais';
 import { PapeisNaCompra, SituacoesDaAtividade, SituacoesDaVenda, TiposDeAtividade } from '../comum/rotulos';
 import { Selo, type TomDoSelo } from '../comum/Selo';
 import estilos from './FichaDaConta.module.css';
@@ -52,8 +53,13 @@ function Ficha({ conta }: { readonly conta: Conta }) {
       <p className={estilos.voltar}>
         <Link to="/contas">Clientes</Link>
       </p>
-      <h1 id="nome-da-conta">{conta.nome}</h1>
-      <p className="subtitulo">{conta.documento ?? 'Sem CNPJ ou CPF informado'}</p>
+      <header className={estilos.cabecalho}>
+        <Iniciais nome={conta.nome} tamanho="grande" />
+        <div>
+          <h1 id="nome-da-conta">{conta.nome}</h1>
+          <p className={estilos.documento}>{conta.documento ?? 'Sem CNPJ ou CPF informado'}</p>
+        </div>
+      </header>
 
       <div className={estilos.colunas}>
         <div className={estilos.principal}>
@@ -77,6 +83,7 @@ function Contatos({ conta }: { readonly conta: Conta }) {
         <ul className={estilos.contatos}>
           {conta.contatos.map((contato) => (
             <li key={contato.id}>
+              <Iniciais nome={contato.nome} />
               <p className={estilos.nome}>
                 <strong>{contato.nome}</strong>{' '}
                 {contato.id === conta.principal && <Selo tom="destaque">Principal</Selo>}

@@ -2,68 +2,82 @@
  * As cores e medidas da aplicação, num lugar só. Cada componente tem o seu
  * arquivo .module.css e usa estas variáveis; o tema escuro troca só elas.
  *
- * Situação tem cor, mas nunca só cor: o selo diz a situação por escrito —
- * "Parada", "Ganha", "Atrasada" —, e o gráfico tem a tabela dos números ao
- * lado.
+ * A cara de um CRM comercial: a base neutra e fria, o índigo como única cor
+ * de destaque, a Inter com os números em largura fixa, cantos arredondados
+ * e sombras leves. A cor é para dizer alguma coisa — a venda parada, a
+ * ganha, a perdida —, e nunca sozinha: o selo diz a situação por escrito, e
+ * o gráfico tem a tabela dos números ao lado.
  */
 :root {
   color-scheme: light dark;
 
-  --fundo: #f4f6f8;
+  --fundo: #f6f6f9;
   --superficie: #ffffff;
-  --coluna: #eaeef2;
-  --borda: #e1e5ea;
-  --borda-forte: #c4cbd4;
-  --texto: #18212b;
-  --texto-suave: #586473;
-  --destaque: #1d5fbf;
-  --destaque-fundo: #e6effb;
+  --superficie-2: #fafafc;
+  --coluna: #f0f0f6;
+  --borda: #e6e6ee;
+  --borda-forte: #cfcfdc;
+  --texto: #16161d;
+  --texto-suave: #5f5f76;
+  --destaque: #4f46e5;
+  --destaque-forte: #4338ca;
+  --destaque-fundo: #eeedfd;
+  --destaque-texto: #ffffff;
+  --marca-de: #6366f1;
+  --marca-ate: #8b5cf6;
 
-  --sucesso: #17703f;
-  --sucesso-fundo: #e2f3e9;
-  --atencao: #8a5300;
-  --atencao-fundo: #fcf0d5;
-  --perigo: #b3261e;
-  --perigo-fundo: #fce8e6;
-  --neutro: #586473;
-  --neutro-fundo: #eceff3;
+  --sucesso: #0b7a48;
+  --sucesso-fundo: #e2f6ec;
+  --atencao: #9a5800;
+  --atencao-fundo: #fdf1dc;
+  --perigo: #c0262d;
+  --perigo-fundo: #fde8e8;
+  --neutro: #5f5f76;
+  --neutro-fundo: #efeff4;
 
-  --ganho: #17703f;
-  --ponderado: #1d5fbf;
-  --em-aberto: #9fb7dc;
+  --ganho: #12a15a;
+  --ponderado: #4f46e5;
+  --em-aberto: #a5a1f5;
 
-  --raio: 10px;
-  --sombra: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 10%);
-  --fonte: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --raio: 14px;
+  --raio-pequeno: 10px;
+  --sombra: 0 1px 2px rgb(22 22 29 / 4%), 0 2px 8px rgb(22 22 29 / 4%);
+  --sombra-elevada: 0 10px 30px rgb(79 70 229 / 12%), 0 2px 6px rgb(22 22 29 / 6%);
+  --fonte:
+    'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --fonte-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fundo: #0e1319;
-    --superficie: #161d25;
-    --coluna: #121920;
-    --borda: #263140;
-    --borda-forte: #3a4757;
-    --texto: #e6ebf1;
-    --texto-suave: #9aa7b6;
-    --destaque: #7fb0ff;
-    --destaque-fundo: #1b2a40;
+    --fundo: #0e0e14;
+    --superficie: #17171f;
+    --superficie-2: #1b1b24;
+    --coluna: #13131a;
+    --borda: #272732;
+    --borda-forte: #3a3a48;
+    --texto: #ececf3;
+    --texto-suave: #a3a3b8;
+    --destaque: #8b84ff;
+    --destaque-forte: #a5a0ff;
+    --destaque-fundo: #25234a;
+    --destaque-texto: #0e0e14;
 
-    --sucesso: #6fd49a;
-    --sucesso-fundo: #15301f;
-    --atencao: #f4c15d;
-    --atencao-fundo: #3a2c0d;
-    --perigo: #ff8a80;
-    --perigo-fundo: #3d1714;
-    --neutro: #9aa7b6;
-    --neutro-fundo: #222b36;
+    --sucesso: #5fd69c;
+    --sucesso-fundo: #12291e;
+    --atencao: #f5c46a;
+    --atencao-fundo: #33270e;
+    --perigo: #ff8f8f;
+    --perigo-fundo: #3a1517;
+    --neutro: #a3a3b8;
+    --neutro-fundo: #22222c;
 
-    --ganho: #6fd49a;
-    --ponderado: #7fb0ff;
-    --em-aberto: #35507a;
+    --ganho: #4fd18f;
+    --ponderado: #8b84ff;
+    --em-aberto: #4a4690;
 
     --sombra: 0 1px 2px rgb(0 0 0 / 40%);
+    --sombra-elevada: 0 10px 30px rgb(0 0 0 / 45%);
   }
 }
 
@@ -77,23 +91,36 @@ body {
   margin: 0;
   background: var(--fundo);
   color: var(--texto);
-  font: 16px/1.5 var(--fonte);
+  font: 15px/1.55 var(--fonte);
+  font-feature-settings: 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
 }
 
 h1,
 h2,
 h3 {
-  line-height: 1.25;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
 }
 
 h1 {
-  margin: 0 0 0.25rem;
-  font-size: 1.75rem;
+  margin: 0 0 0.35rem;
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+h2 {
+  font-weight: 650;
 }
 
 a {
   color: var(--destaque);
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  color: var(--destaque-forte);
 }
 
 :focus-visible {
@@ -102,14 +129,23 @@ a {
 }
 
 button {
-  padding: 0.5rem 1rem;
+  padding: 0.55rem 1rem;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--raio-pequeno);
   background: var(--destaque);
-  color: #ffffff;
+  color: var(--destaque-texto);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+button:hover:not(:disabled) {
+  background: var(--destaque-forte);
+  box-shadow: 0 4px 12px rgb(79 70 229 / 25%);
 }
 
 button:disabled {
@@ -119,8 +155,15 @@ button:disabled {
 
 button.secundario {
   border-color: var(--borda-forte);
-  background: transparent;
+  background: var(--superficie);
   color: var(--texto);
+}
+
+button.secundario:hover:not(:disabled) {
+  border-color: var(--destaque);
+  background: var(--destaque-fundo);
+  box-shadow: none;
+  color: var(--destaque-forte);
 }
 
 input,
@@ -131,11 +174,22 @@ textarea {
 
 select,
 input {
-  padding: 0.35rem 0.5rem;
+  padding: 0.45rem 0.65rem;
   border: 1px solid var(--borda-forte);
-  border-radius: 6px;
+  border-radius: var(--raio-pequeno);
   background: var(--superficie);
   color: var(--texto);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  border-color: var(--destaque);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--destaque-fundo);
 }
 
 table {
@@ -146,15 +200,26 @@ table {
 
 th,
 td {
-  padding: 0.5rem 0.75rem;
+  padding: 0.65rem 0.75rem;
   border-bottom: 1px solid var(--borda);
   text-align: left;
 }
 
-th {
+thead th {
   color: var(--texto-suave);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+tbody tr:hover {
+  background: var(--superficie-2);
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .numero {
@@ -163,7 +228,8 @@ th {
 }
 
 .subtitulo {
-  margin: 0 0 1.5rem;
+  max-width: 60rem;
+  margin: 0 0 1.75rem;
   color: var(--texto-suave);
 }
 

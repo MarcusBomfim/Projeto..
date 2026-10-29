@@ -1,5 +1,6 @@
 import { useState, type SubmitEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { Icone } from '../comum/Icone';
 import { useSessao } from './contexto';
 import { destinoSeguro } from './destino';
 import estilos from './TelaDeEntrada.module.css';
@@ -33,6 +34,9 @@ export function TelaDeEntrada() {
   return (
     <main className={estilos.pagina}>
       <form className={estilos.cartao} onSubmit={enviar} aria-labelledby="titulo-entrada">
+        <span className={estilos.simbolo}>
+          <Icone nome="marca" />
+        </span>
         <h1 id="titulo-entrada">CRM de Obras</h1>
         <p className={estilos.chamada}>Entre com o token de acesso da sua construtora.</p>
 

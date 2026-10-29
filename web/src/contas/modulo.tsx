@@ -7,5 +7,5 @@ export const modulo: Modulo = {
     { path: 'contas', element: <TelaDasContas /> },
     { path: 'contas/:id', element: <FichaDaConta /> },
   ],
-  menu: { rotulo: 'Clientes', caminho: '/contas', ordem: 2 },
+  menu: { rotulo: 'Clientes', caminho: '/contas', icone: 'clientes', ordem: 2 },
 };

@@ -4,6 +4,8 @@ import { api } from '../api/cliente';
 import { comoProblema } from '../api/problemas';
 import { AvisoDeProblema } from '../comum/AvisoDeProblema';
 import { Carregando } from '../comum/Carregando';
+import { Icone } from '../comum/Icone';
+import { Iniciais } from '../comum/Iniciais';
 import estilos from './TelaDasContas.module.css';
 
 /** O nome sem acento e sem diferença de maiúscula: "logistica" acha "Logística". */
@@ -48,7 +50,11 @@ export function TelaDasContas() {
           <ul className={estilos.contas}>
             {achadas.map((conta) => (
               <li key={conta.id}>
-                <Link to={`/contas/${conta.id}`}>{conta.nome}</Link>
+                <Link to={`/contas/${conta.id}`}>
+                  <Iniciais nome={conta.nome} />
+                  <span className={estilos.nome}>{conta.nome}</span>
+                  <Icone nome="seta" className={estilos.seta} />
+                </Link>
               </li>
             ))}
           </ul>

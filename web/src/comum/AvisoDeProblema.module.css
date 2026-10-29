@@ -1,14 +1,16 @@
 .aviso {
-  padding: 1rem 1.25rem;
+  margin: 0 0 1rem;
+  padding: 0.9rem 1.15rem;
   border: 1px solid var(--perigo);
-  border-radius: var(--raio);
+  border-left-width: 4px;
+  border-radius: var(--raio-pequeno);
   background: var(--perigo-fundo);
 }
 
 .titulo {
   margin: 0;
   color: var(--perigo);
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .detalhe {

@@ -7,14 +7,32 @@
 
 .escolhas label {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.3rem;
   color: var(--texto-suave);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 650;
 }
 
+/* O total previsto, que é o número da tela, grande e à esquerda. */
 .resumo {
-  margin: 0 0 1rem;
+  margin: 0 0 1.25rem;
+  padding: 1.1rem 1.35rem;
+  border: 1px solid var(--borda);
+  border-left: 4px solid var(--destaque);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+  color: var(--texto-suave);
+}
+
+.resumo strong {
+  display: block;
+  color: var(--texto);
+  font-size: 1.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
 }
 
 .blocos {
@@ -25,7 +43,7 @@
 }
 
 .bloco {
-  padding: 1rem 1.25rem;
+  padding: 1.15rem 1.35rem 1.25rem;
   border: 1px solid var(--borda);
   border-radius: var(--raio);
   background: var(--superficie);
@@ -34,18 +52,21 @@
 
 .bloco h2 {
   margin: 0 0 0.5rem;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .bloco h3 {
-  margin: 0.75rem 0 0.35rem;
+  margin: 1rem 0 0.4rem;
   color: var(--texto-suave);
-  font-size: 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .vendas {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.5rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -53,15 +74,19 @@
 
 .vendas li {
   display: grid;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--superficie-2);
 }
 
 .vendas span {
   color: var(--texto-suave);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 .vazio {
   margin: 0;
   color: var(--texto-suave);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }

@@ -2,6 +2,8 @@ import { useId } from 'react';
 import { Link } from 'react-router';
 import type { Esquemas } from '../api/cliente';
 import { diasDesde, formatarData, formatarDias, formatarMoeda } from '../comum/formatacao';
+import { Icone } from '../comum/Icone';
+import { Iniciais } from '../comum/Iniciais';
 import { Selo } from '../comum/Selo';
 import estilos from './CartaoDaVenda.module.css';
 
@@ -54,11 +56,12 @@ export function CartaoDaVenda({
       </header>
 
       <Link to={`/contas/${cartao.conta}`} className={estilos.conta}>
-        {cartao.nomeDaConta}
+        <Icone nome="empresa" />
+        <span>{cartao.nomeDaConta}</span>
       </Link>
 
       <dl className={estilos.dados}>
-        <div>
+        <div className={estilos.valor}>
           <dt>Valor</dt>
           <dd>{cartao.valorEstimado === null ? 'sem valor' : formatarMoeda(cartao.valorEstimado)}</dd>
         </div>
@@ -70,9 +73,12 @@ export function CartaoDaVenda({
           <dt>Na etapa</dt>
           <dd>{formatarDias(diasDesde(cartao.entrouNaEtapaEm))}</dd>
         </div>
-        <div>
+        <div className={estilos.com}>
           <dt>Com</dt>
-          <dd>{cartao.responsavel}</dd>
+          <dd>
+            <Iniciais nome={cartao.responsavel} tamanho="pequeno" />
+            <span>{cartao.responsavel}</span>
+          </dd>
         </div>
       </dl>
 

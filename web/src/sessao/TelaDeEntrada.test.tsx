@@ -35,7 +35,7 @@ describe('a entrada', () => {
     expect(await screen.findByRole('heading', { name: 'Clientes' })).toBeInTheDocument();
     expect(roteador.state.location.search).toBe('?ordem=nome');
     expect(screen.getByText('Carlos Souza')).toBeInTheDocument();
-    expect(screen.getByText('· vendedor')).toBeInTheDocument();
+    expect(screen.getByText('vendedor')).toBeInTheDocument();
   });
 
   test('o token que não serve não entra, e o motivo aparece', async () => {

@@ -1,10 +1,13 @@
 import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router';
+import { Icone } from '../comum/Icone';
+import { Iniciais } from '../comum/Iniciais';
 import { useSessao } from '../sessao/contexto';
 import { entradasDoMenu } from './modulos';
 import estilos from './Moldura.module.css';
 
 /**
- * O que toda tela tem em volta: a marca, o menu das áreas e quem entrou. Sem
+ * O que toda tela tem em volta, num menu à esquerda, como nos CRMs: a marca,
+ * as áreas — cada uma com o ícone e a palavra — e, no pé, quem entrou. Sem
  * sessão, manda para a entrada — e volta para cá depois.
  */
 export function Moldura() {
@@ -17,16 +20,20 @@ export function Moldura() {
 
   return (
     <div className={estilos.moldura}>
-      <header className={estilos.topo}>
+      <header className={estilos.lateral}>
         <Link to="/" className={estilos.marca}>
+          <span className={estilos.simbolo}>
+            <Icone nome="marca" />
+          </span>
           CRM de Obras
         </Link>
 
-        <nav aria-label="Principal">
+        <nav aria-label="Principal" className={estilos.navegacao}>
           <ul className={estilos.menu}>
             {entradasDoMenu().map((entrada) => (
               <li key={entrada.caminho}>
                 <NavLink to={entrada.caminho} end={entrada.caminho === '/'}>
+                  {entrada.icone && <Icone nome={entrada.icone} />}
                   {entrada.rotulo}
                 </NavLink>
               </li>
@@ -35,12 +42,11 @@ export function Moldura() {
         </nav>
 
         <div className={estilos.sessao}>
-          <span>
+          <Iniciais nome={sessao.nome} />
+          <p className={estilos.quem}>
             <strong>{sessao.nome}</strong>
-            {sessao.papeis.length > 0 && (
-              <span className={estilos.papeis}> · {sessao.papeis.join(', ')}</span>
-            )}
-          </span>
+            {sessao.papeis.length > 0 && <span className={estilos.papeis}>{sessao.papeis.join(', ')}</span>}
+          </p>
           <button
             type="button"
             className="secundario"
@@ -48,6 +54,7 @@ export function Moldura() {
               sair();
             }}
           >
+            <Icone nome="sair" />
             Sair
           </button>
         </div>

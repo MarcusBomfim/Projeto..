@@ -3,5 +3,5 @@ import { TelaDoFunil } from './TelaDoFunil';
 
 export const modulo: Modulo = {
   rotas: [{ index: true, element: <TelaDoFunil /> }],
-  menu: { rotulo: 'Funil', caminho: '/', ordem: 1 },
+  menu: { rotulo: 'Funil', caminho: '/', icone: 'funil', ordem: 1 },
 };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { api, type Esquemas } from '../api/cliente';
 import { comoProblema } from '../api/problemas';
 import { AvisoDeProblema } from '../comum/AvisoDeProblema';
@@ -43,6 +43,7 @@ function Colunas({ quadro }: { readonly quadro: Quadro }) {
   const vendas = quadro.colunas.reduce((soma, coluna) => soma + coluna.oportunidades.length, 0);
   const paradas = quadro.colunas.flatMap((coluna) => coluna.oportunidades).filter((cartao) => cartao.parada);
   const destinoDaMovida = quadro.colunas.find((coluna) => coluna.etapa === movida?.etapa);
+  const comValor = vendas - quadro.colunas.reduce((soma, coluna) => soma + coluna.semValor, 0);
 
   const destinos = (de: string): DestinoDoCartao[] =>
     abertas
@@ -53,7 +54,33 @@ function Colunas({ quadro }: { readonly quadro: Quadro }) {
 
   return (
     <>
-      <p className={estilos.resumo}>
+      {/* Os números grandes, para bater o olho; o leitor de tela lê a frase logo abaixo, que diz o mesmo. */}
+      <div className={estilos.indicadores} aria-hidden="true">
+        <Indicador
+          nome="Em aberto"
+          valor={formatarMoeda(quadro.total)}
+          nota={vendas === 1 ? '1 venda no funil' : `${vendas} vendas no funil`}
+          classe={estilos.principal}
+        />
+        <Indicador
+          nome="Ponderado"
+          valor={formatarMoeda(quadro.ponderado)}
+          nota="pela probabilidade de cada etapa"
+        />
+        <Indicador
+          nome="Valor médio"
+          valor={comValor === 0 ? '—' : formatarMoeda(quadro.total / comValor)}
+          nota="das vendas com valor estimado"
+        />
+        <Indicador
+          nome="Paradas"
+          valor={String(paradas.length)}
+          nota="há mais tempo do que a etapa espera"
+          classe={paradas.length > 0 ? estilos.alerta : undefined}
+        />
+      </div>
+
+      <p className="somente-leitor">
         {vendas === 1 ? '1 venda aberta' : `${vendas} vendas abertas`}, {formatarMoeda(quadro.total)} em
         aberto, {formatarMoeda(quadro.ponderado)} ponderado pela probabilidade de cada etapa
         {paradas.length > 0 && (
@@ -103,15 +130,26 @@ function Colunas({ quadro }: { readonly quadro: Quadro }) {
             }}
           >
             <header className={estilos.cabecalho}>
-              <h2 id={`coluna-${coluna.etapa}`}>
-                {coluna.arquivada ? `${coluna.nome} (arquivada)` : coluna.nome}
-              </h2>
-              <p className={estilos.numeros}>
-                <span>{formatarProbabilidade(coluna.probabilidade)}</span>
-                <span>
-                  {coluna.oportunidades.length} · {formatarMoedaCompacta(coluna.total)}
+              <div className={estilos.titulo}>
+                <h2 id={`coluna-${coluna.etapa}`}>
+                  {coluna.arquivada ? `${coluna.nome} (arquivada)` : coluna.nome}
+                </h2>
+                <span className={estilos.contagem}>
+                  {coluna.oportunidades.length}
+                  <span className="somente-leitor">
+                    {coluna.oportunidades.length === 1 ? ' venda' : ' vendas'}
+                  </span>
                 </span>
+              </div>
+              <p className={estilos.numeros}>
+                <span className={estilos.probabilidade}>{formatarProbabilidade(coluna.probabilidade)}</span>
+                <span>{formatarMoedaCompacta(coluna.total)}</span>
               </p>
+              <span
+                className={estilos.barra}
+                style={{ '--probabilidade': `${String(coluna.probabilidade)}%` } as CSSProperties}
+                aria-hidden="true"
+              />
               <p className={estilos.ponderado}>
                 Ponderado: {formatarMoeda(coluna.ponderado)}
                 {coluna.semValor > 0 && ` · ${coluna.semValor} sem valor`}
@@ -143,5 +181,25 @@ function Colunas({ quadro }: { readonly quadro: Quadro }) {
         ))}
       </div>
     </>
+  );
+}
+
+function Indicador({
+  nome,
+  valor,
+  nota,
+  classe,
+}: {
+  readonly nome: string;
+  readonly valor: string;
+  readonly nota: string;
+  readonly classe?: string | undefined;
+}) {
+  return (
+    <div className={`${estilos.indicador ?? ''} ${classe ?? ''}`}>
+      <span className={estilos.nome}>{nome}</span>
+      <strong className={estilos.valor}>{valor}</strong>
+      <span className={estilos.nota}>{nota}</span>
+    </div>
   );
 }

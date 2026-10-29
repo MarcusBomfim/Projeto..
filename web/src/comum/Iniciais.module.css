@@ -1,0 +1,43 @@
+.iniciais {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: hsl(var(--matiz) 75% 92%);
+  color: hsl(var(--matiz) 55% 28%);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
+}
+
+.iniciais::before {
+  content: attr(data-iniciais);
+}
+
+@media (prefers-color-scheme: dark) {
+  .iniciais {
+    background: hsl(var(--matiz) 35% 24%);
+    color: hsl(var(--matiz) 80% 86%);
+  }
+}
+
+.pequeno {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.62rem;
+}
+
+.medio {
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 0.8rem;
+}
+
+/* A empresa, no alto da ficha: um quadrado arredondado, maior. */
+.grande {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 16px;
+  font-size: 1.15rem;
+}

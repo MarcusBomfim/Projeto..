@@ -1,8 +1,11 @@
 import type { RouteObject } from 'react-router';
+import type { NomeDoIcone } from '../comum/Icone';
 
 export interface EntradaDoMenu {
   readonly rotulo: string;
   readonly caminho: string;
+  /** O ícone ao lado da palavra, no menu. */
+  readonly icone?: NomeDoIcone | undefined;
   /** A posição no menu: menor vem antes. */
   readonly ordem: number;
 }
